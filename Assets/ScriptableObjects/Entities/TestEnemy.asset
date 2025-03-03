@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07393e790c5d8814386ae593de36a8bc, type: 3}
+  m_Name: TestEnemy
+  m_EditorClassIdentifier: 
+  speed: 8
+  health: 10
+  attack: 1
+  entityName: Enemy0
+  moveTiles: 2
+  enemyAI: {fileID: 11400000, guid: c021757b85ca1c948a511410d4992226, type: 2}
+  actions:
+  - {fileID: 11400000, guid: 92fe0c8f201e97e46ab8fa47c6d1f80a, type: 2}
