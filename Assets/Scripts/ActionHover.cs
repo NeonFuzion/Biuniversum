@@ -4,7 +4,7 @@ using UnityEngine.EventSystems;
 
 public class ActionHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
-    [SerializeField] Pointer pointer;
+    [SerializeField] BattleManager battleManager;
 
     TextMeshProUGUI textMeshPro;
     Action action;
@@ -23,12 +23,12 @@ public class ActionHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        pointer.ShowEffectedTiles(action);
+        battleManager.ShowEffectedTiles(action);
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        pointer.ClearTiles();
+        battleManager.HideEffectedTiles();
     }
 
     public void Initialize(Action action)

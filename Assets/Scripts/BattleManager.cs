@@ -13,7 +13,6 @@ public class BattleManager : NetworkBehaviour
 {
     [SerializeField] int northClamp, eastClamp, southClamp, westClamp;
     [SerializeField] GameObject actionMenu;
-    [SerializeField] Pointer pointer;
     [SerializeField] UnityEvent onContinue;
     [SerializeField] List<EntityBattleData> battleData;
     
@@ -30,7 +29,12 @@ public class BattleManager : NetworkBehaviour
 
         foreach (EntityBattleData currentEntityBattleData in battleData)
         {
-            currentEntityBattleData.EntityObject.OnFinishActionState.AddListener(PreformCycle);
+            EntityObject entityObject = currentEntityBattleData.EntityObject;
+            entityObject.OnFinishActionState.AddListener(PreformCycle);
+            entityObject.GetComponent<Health>().Initialize((int)entityObject.Entity.Health);
+
+            if (!currentEntityBattleData.ActionVisual) continue;
+            currentEntityBattleData.ActionVisual.Initialize(entityObject.transform);
         }
 
         SortEntitiesBySpeed();
@@ -80,7 +84,7 @@ public class BattleManager : NetworkBehaviour
         stepCount = 0;
         maxSteps = battleData[entityIndex].EntityObject.Entity.MoveTiles;
         currentMovement = new Vector3[maxSteps];
-        battleData[entityIndex].EntityObject.SetMovement();
+        battleData[entityIndex].ActionVisual.SetMovement();
     }
 
     void SortEntitiesBySpeed()
@@ -126,7 +130,7 @@ public class BattleManager : NetworkBehaviour
         if (worldPosition.z > northClamp) return;
         if (worldPosition.z < southClamp) return;
 
-        entityObject.AddSteps(movement);
+        battleData[entityIndex].ActionVisual.AddSteps(movement);
         currentMovement[stepCount] = movement;
         stepCount++;
 
@@ -138,6 +142,7 @@ public class BattleManager : NetworkBehaviour
     {
         EntityTurnData currentTurnData = new EntityTurnData(actionChoice, currentMovement);
         turnData[entityIndex] = currentTurnData;
+        HideVisuals();
         actionIndex = 0;
         entityIndex++;
         SetNextControllableCharacter();
@@ -214,13 +219,26 @@ public class BattleManager : NetworkBehaviour
                 actionButton.SetActive(false);
             }
         }
-
-        pointer.SelectEntity(entityObject.gameObject);
     }
 
-    public void ShowActionEffectTiles()
+    public void ShowEffectedTiles(Action action)
     {
+        battleData[entityIndex].ActionVisual.ShowEffectedTiles(action);
+    }
 
+    public void HideEffectedTiles()
+    {
+        battleData[entityIndex].ActionVisual.HideEffectedTiles();
+    }
+
+    public void ShowVisuals(Action action)
+    {
+        battleData[entityIndex].ActionVisual.ShowVisuals(action);
+    }
+
+    public void HideVisuals()
+    {
+        battleData[entityIndex].ActionVisual.HideVisuals();
     }
 }
 
@@ -247,14 +265,17 @@ public class EntityBattleData
 {
     [SerializeField] EntityObject entityObject;
     [SerializeField] ArenaSide arenaSide;
+    [SerializeField] ActionVisual actionVisual;
 
     public EntityObject EntityObject { get => entityObject; }
     public ArenaSide ArenaSide { get => arenaSide; }
+    public ActionVisual ActionVisual { get => actionVisual; }
 
-    public EntityBattleData(EntityObject entityObject, ArenaSide arenaSide)
+    public EntityBattleData(EntityObject entityObject, ArenaSide arenaSide, ActionVisual actionVisual)
     {
         this.entityObject = entityObject;
         this.arenaSide = arenaSide;
+        this.actionVisual = actionVisual;
     }
 }
 

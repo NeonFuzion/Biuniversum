@@ -13,8 +13,6 @@ public class EntityObject : MonoBehaviour
     [SerializeField] UnityEvent onFinishActionState;
 
     Rigidbody rigidbody;
-    LineRenderer lineRenderer;
-    Material defaultMaterial;
     EntityState state;
     Health healthScript;
     List<Vector3> movePositions;
@@ -26,11 +24,9 @@ public class EntityObject : MonoBehaviour
     void Start()
     {
         rigidbody = GetComponent<Rigidbody>();
-        lineRenderer = GetComponent<LineRenderer>();
         healthScript = GetComponent<Health>();
 
         healthScript.Initialize((int)entity.Health);
-        lineRenderer.SetPosition(0, new Vector3(transform.position.x, 0, transform.position.z));
     }
 
     // Update is called once per frame
@@ -61,19 +57,6 @@ public class EntityObject : MonoBehaviour
         }
     }
 
-    public void SetMovement()
-    {
-        lineRenderer.enabled = true;
-        lineRenderer.SetPosition(0, lineRenderer.GetPosition(lineRenderer.positionCount - 1));
-        lineRenderer.positionCount = 1;
-    }
-
-    public void AddSteps(Vector3 movement)
-    {
-        int lastIndex = lineRenderer.positionCount++;
-        lineRenderer.SetPosition(lastIndex, new Vector3(transform.position.x, 0, transform.position.z) + movement);
-    }
-
     public void PerformAction(int actionChoice, EntityBattleData[] entityBattleData, EntityBattleData currentEntityBattleData)
     {
         Debug.Log("Preforming action");
@@ -100,7 +83,6 @@ public class EntityObject : MonoBehaviour
         Debug.Log("Moving");
         state = EntityState.Moving;
         movePositions = new List<Vector3>();
-        lineRenderer.enabled = false;
         for (int i = 0; i < movement.Length; i++)
         {
             Vector3 lastPosition = i == 0 ? Vector3.zero : movement[i - 1];

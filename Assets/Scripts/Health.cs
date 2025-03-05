@@ -5,7 +5,9 @@ public class Health : MonoBehaviour
 {
     [SerializeField] int health, maxHealth;
 
-    [SerializeField] UnityEvent onHit, onDeath;
+    [SerializeField] UnityEvent onDeath;
+    [SerializeField] UnityEvent<int, bool> onHit;
+    [SerializeField] UnityEvent<int, int> onInitialize;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -22,7 +24,7 @@ public class Health : MonoBehaviour
     public void TakeDamage(int damage)
     {
         health -= damage;
-        onHit?.Invoke();
+        onHit?.Invoke(damage, false);
 
         if (health > 0) return;
         onDeath?.Invoke();
@@ -32,5 +34,7 @@ public class Health : MonoBehaviour
     {
         this.maxHealth = maxHealth;
         this.health = health == -1 ? maxHealth : health;
+
+        onInitialize?.Invoke(maxHealth, health);
     }
 }
