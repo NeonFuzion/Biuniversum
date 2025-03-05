@@ -106,7 +106,7 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
@@ -124,8 +124,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a34d3ce87ebcce043b803db01cdfcd95, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  entity: {fileID: 0}
   moveSpeed: 500
+  selectMaterial: {fileID: 2100000, guid: 26c32c29f176f4f4f96050ae0cc7db43, type: 2}
+  entity: {fileID: 0}
   onFinishActionState:
     m_PersistentCalls:
       m_Calls: []

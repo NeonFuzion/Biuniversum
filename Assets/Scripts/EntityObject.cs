@@ -9,13 +9,11 @@ public class EntityObject : MonoBehaviour
 {
     [SerializeField] float moveSpeed;
 
-    [SerializeField] Material selectMaterial;
     [SerializeField] Entity entity;
     [SerializeField] UnityEvent onFinishActionState;
 
     Rigidbody rigidbody;
     LineRenderer lineRenderer;
-    MeshRenderer meshRenderer;
     Material defaultMaterial;
     EntityState state;
     Health healthScript;
@@ -29,12 +27,10 @@ public class EntityObject : MonoBehaviour
     {
         rigidbody = GetComponent<Rigidbody>();
         lineRenderer = GetComponent<LineRenderer>();
-        meshRenderer = GetComponent<MeshRenderer>();
         healthScript = GetComponent<Health>();
 
         healthScript.Initialize((int)entity.Health);
         lineRenderer.SetPosition(0, new Vector3(transform.position.x, 0, transform.position.z));
-        defaultMaterial = meshRenderer.material;
     }
 
     // Update is called once per frame
@@ -65,18 +61,11 @@ public class EntityObject : MonoBehaviour
         }
     }
 
-    public void Deselect()
-    {
-        meshRenderer.material = defaultMaterial;
-    }
-
     public void SetMovement()
     {
         lineRenderer.enabled = true;
         lineRenderer.SetPosition(0, lineRenderer.GetPosition(lineRenderer.positionCount - 1));
         lineRenderer.positionCount = 1;
-
-        meshRenderer.material = selectMaterial;
     }
 
     public void AddSteps(Vector3 movement)
@@ -85,18 +74,20 @@ public class EntityObject : MonoBehaviour
         lineRenderer.SetPosition(lastIndex, new Vector3(transform.position.x, 0, transform.position.z) + movement);
     }
 
-    public void PerformAction(int actionChoice, EntityObject[] entities)
+    public void PerformAction(int actionChoice, EntityBattleData[] entityBattleData, EntityBattleData currentEntityBattleData)
     {
         Debug.Log("Preforming action");
         Action action = entity.Actions[actionChoice];
         if (action as DamagingAction)
         {
             DamagingAction damagingAction = action as DamagingAction;
-            foreach (EntityObject entityObject in entities)
+            foreach (EntityBattleData battleData in entityBattleData)
             {
-                GameObject currentEntity = entityObject.gameObject;
+                if (battleData == currentEntityBattleData) continue;
+                GameObject currentEntity = battleData.EntityObject.gameObject;
+                
+                if (battleData.ArenaSide == currentEntityBattleData.ArenaSide) continue;
                 if (!damagingAction.EffectTiles.Contains((Vector2)currentEntity.transform.position)) continue;
-
                 Health healthScript = currentEntity.GetComponent<Health>();
                 healthScript.TakeDamage(damagingAction.Damage + (int)entity.Attack);
             }
@@ -104,18 +95,20 @@ public class EntityObject : MonoBehaviour
         onFinishActionState?.Invoke();
     }
 
-    public void PerformMovement(Vector3[] movement, EntityObject[] entities)
+    public void PerformMovement(Vector3[] movement, EntityBattleData[] entityBattleData, EntityBattleData currentEntityBattleData)
     {
         Debug.Log("Moving");
         state = EntityState.Moving;
         movePositions = new List<Vector3>();
+        lineRenderer.enabled = false;
         for (int i = 0; i < movement.Length; i++)
         {
             Vector3 lastPosition = i == 0 ? Vector3.zero : movement[i - 1];
             Vector3 newPosition = transform.position + movement[i];
 
-            foreach (EntityObject entityObject in entities)
+            foreach (EntityBattleData battleData in entityBattleData)
             {
+                EntityObject entityObject = battleData.EntityObject;
                 Vector3 distanceVector = entityObject.transform.position - newPosition;
                 distanceVector = new Vector3(distanceVector.x, 0, distanceVector.z);
                 if (distanceVector.magnitude == 0) return;

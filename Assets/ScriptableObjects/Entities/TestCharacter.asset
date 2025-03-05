@@ -17,6 +17,7 @@ MonoBehaviour:
   attack: 1
   entityName: Player0
   moveTiles: 2
-  isControlled: 1
+  enemyAI: {fileID: 0}
   actions:
   - {fileID: 11400000, guid: 92fe0c8f201e97e46ab8fa47c6d1f80a, type: 2}
+  - {fileID: 11400000, guid: 6905d47b8b205fd47aa45a0f33978e6a, type: 2}
