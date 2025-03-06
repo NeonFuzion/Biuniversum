@@ -30,7 +30,6 @@ public class ActionVisual : MonoBehaviour
 
     public void SetMovement()
     {
-        Debug.Log(target.position);
         transform.position = new Vector3(target.position.x, 0, target.position.z);
 
         lineRenderer.enabled = true;

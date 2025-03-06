@@ -29,6 +29,7 @@ public class BattleManager : MonoBehaviour
         foreach (EntityBattleData currentEntityBattleData in battleData)
         {
             EntityObject entityObject = currentEntityBattleData.EntityObject;
+            entityObject.Initialize(battleData.ToArray(), currentEntityBattleData);
             entityObject.OnFinishActionState.AddListener(IncrementCycle);
             entityObject.GetComponent<Health>().Initialize((int)entityObject.Entity.Health);
 
@@ -174,6 +175,7 @@ public class BattleManager : MonoBehaviour
             
             turnData = new EntityTurnData[battleData.Count];
             SetNextControllableCharacter();
+            SetupMovement();
             return;
         }
 
@@ -192,10 +194,10 @@ public class BattleManager : MonoBehaviour
         switch ((ActionStage)actionIndex)
         {
             case ActionStage.Moving:
-                currentBattleData.EntityObject.PerformMovement(movement, battleData.ToArray(), currentBattleData);
+                currentBattleData.EntityObject.PerformMovement(movement);
                 break;
             case ActionStage.Performing:
-                currentBattleData.EntityObject.PerformAction(actionChoice, battleData.ToArray(), currentBattleData);
+                currentBattleData.EntityObject.PerformAction(actionChoice);
                 break;
         }
     }

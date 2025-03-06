@@ -12,10 +12,15 @@ public class EntityObject : MonoBehaviour
     [SerializeField] Entity entity;
     [SerializeField] UnityEvent onFinishActionState;
 
+    int actionChoice;
+
     Rigidbody rigidbody;
     EntityState state;
     Health healthScript;
+    Animator animator;
     List<Vector3> movePositions;
+    EntityBattleData[] entityBattleData;
+    EntityBattleData currentEntityBattleData;
 
     public Entity Entity { get => entity; }
     public UnityEvent OnFinishActionState { get => onFinishActionState; }
@@ -25,6 +30,7 @@ public class EntityObject : MonoBehaviour
     {
         rigidbody = GetComponent<Rigidbody>();
         healthScript = GetComponent<Health>();
+        animator = GetComponent<Animator>();
 
         healthScript.Initialize((int)entity.Health);
     }
@@ -57,7 +63,7 @@ public class EntityObject : MonoBehaviour
         }
     }
 
-    public void PerformAction(int actionChoice, EntityBattleData[] entityBattleData, EntityBattleData currentEntityBattleData)
+    void DealDamage()
     {
         Debug.Log("Preforming action");
         Action action = entity.Actions[actionChoice];
@@ -70,15 +76,33 @@ public class EntityObject : MonoBehaviour
                 GameObject currentEntity = battleData.EntityObject.gameObject;
                 
                 if (battleData.ArenaSide == currentEntityBattleData.ArenaSide) continue;
-                if (!damagingAction.EffectTiles.Contains((Vector2)currentEntity.transform.position)) continue;
+                Vector3 enemyOffset = currentEntity.transform.position - currentEntityBattleData.EntityObject.transform.position;
+                Vector2 enemyTilesPosition = new Vector2(enemyOffset.x, enemyOffset.z);
+
+                if (!damagingAction.EffectTiles.Contains(enemyTilesPosition)) continue;
                 Health healthScript = currentEntity.GetComponent<Health>();
                 healthScript.TakeDamage(damagingAction.Damage + (int)entity.Attack);
             }
         }
+    }
+
+    public void FinishActionAnimation()
+    {
         onFinishActionState?.Invoke();
     }
 
-    public void PerformMovement(Vector3[] movement, EntityBattleData[] entityBattleData, EntityBattleData currentEntityBattleData)
+    public void Initialize(EntityBattleData[] entityBattleData, EntityBattleData currentEntityBattleData)
+    {
+        this.entityBattleData = entityBattleData;
+        this.currentEntityBattleData = currentEntityBattleData;
+    }
+
+    public void PerformAction(int actionChoice)
+    {
+        animator.CrossFade(currentEntityBattleData.EntityObject.Entity.Actions[actionChoice].AnimatorName, 0, 0);
+    }
+
+    public void PerformMovement(Vector3[] movement)
     {
         Debug.Log("Moving");
         state = EntityState.Moving;
