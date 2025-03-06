@@ -33,7 +33,9 @@ public class Health : MonoBehaviour
     public void Initialize(int maxHealth, int health = -1)
     {
         this.maxHealth = maxHealth;
-        this.health = health == -1 ? maxHealth : health;
+        this.health = health;
+
+        if (health == -1) health = maxHealth;
 
         onInitialize?.Invoke(maxHealth, health);
     }

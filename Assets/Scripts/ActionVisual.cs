@@ -11,8 +11,7 @@ public class ActionVisual : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        lineRenderer = GetComponent<LineRenderer>();
-        lineRenderer.SetPosition(0, new Vector3(transform.position.x, 0, transform.position.z));
+
     }
 
     // Update is called once per frame
@@ -24,26 +23,29 @@ public class ActionVisual : MonoBehaviour
     public void Initialize(Transform target)
     {
         this.target = target;
+
+        lineRenderer = GetComponent<LineRenderer>();
+        lineRenderer.SetPosition(0, new Vector3(transform.position.x, 0, transform.position.z));
     }
 
     public void SetMovement()
     {
+        Debug.Log(target.position);
         transform.position = new Vector3(target.position.x, 0, target.position.z);
 
         lineRenderer.enabled = true;
-        lineRenderer.SetPosition(0, transform.position);
         lineRenderer.positionCount = 1;
     }
 
     public void AddSteps(Vector3 movement)
     {
         int lastIndex = lineRenderer.positionCount++;
-        lineRenderer.SetPosition(lastIndex, new Vector3(transform.position.x, 0, transform.position.z) + movement);
+        lineRenderer.SetPosition(lastIndex, movement);
     }
 
     public void ShowEffectedTiles(Action action)
     {
-        tileManager.position = lineRenderer.GetPosition(lineRenderer.positionCount - 1);
+        tileManager.position = lineRenderer.GetPosition(lineRenderer.positionCount - 1) + transform.position;
         for (int i = 0; i < tiles.Length; i++)
         {
             bool withinBounds = action.EffectTiles.Length > i;

@@ -9,28 +9,27 @@ using Unity.Netcode;
 using NUnit.Framework;
 using UnityEngine.UI;
 
-public class BattleManager : NetworkBehaviour
+public class BattleManager : MonoBehaviour
 {
     [SerializeField] int northClamp, eastClamp, southClamp, westClamp;
-    [SerializeField] GameObject actionMenu;
+    [SerializeField] GameObject actionMenu, endMovmentButton;
     [SerializeField] UnityEvent onContinue;
     [SerializeField] List<EntityBattleData> battleData;
     
     EntityTurnData[] turnData;
-
     Vector3[] currentMovement;
 
     int entityIndex, actionIndex, maxSteps, stepCount;
+    bool actionSelectable;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    void Awake()
     {
         turnData = new EntityTurnData[battleData.Count];
 
         foreach (EntityBattleData currentEntityBattleData in battleData)
         {
             EntityObject entityObject = currentEntityBattleData.EntityObject;
-            entityObject.OnFinishActionState.AddListener(PreformCycle);
+            entityObject.OnFinishActionState.AddListener(IncrementCycle);
             entityObject.GetComponent<Health>().Initialize((int)entityObject.Entity.Health);
 
             if (!currentEntityBattleData.ActionVisual) continue;
@@ -40,7 +39,13 @@ public class BattleManager : NetworkBehaviour
         SortEntitiesBySpeed();
         actionIndex = 0;
         entityIndex = 0;
+        actionSelectable = false;
         SetNextControllableCharacter();
+    }
+
+    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    void Start()
+    {
         SetupMovement();
     }
 
@@ -62,8 +67,8 @@ public class BattleManager : NetworkBehaviour
 
             if (entityIndex < battleData.Count) continue;
             EndSelection();
+            break;
         }
-
     }
 
     void EndSelection()
@@ -82,6 +87,8 @@ public class BattleManager : NetworkBehaviour
     void SetupMovement()
     {
         stepCount = 0;
+        actionSelectable = true;
+        endMovmentButton.SetActive(true);
         maxSteps = battleData[entityIndex].EntityObject.Entity.MoveTiles;
         currentMovement = new Vector3[maxSteps];
         battleData[entityIndex].ActionVisual.SetMovement();
@@ -119,6 +126,7 @@ public class BattleManager : NetworkBehaviour
     {
         if (!context.performed) return;
         if (actionIndex != 0) return;
+        if (stepCount >= maxSteps) return;
         Vector2 input = context.action.ReadValue<Vector2>();
         Vector3 movement = new Vector3(input.x, 0, input.y);
         EntityObject entityObject = battleData[entityIndex].EntityObject;
@@ -133,9 +141,6 @@ public class BattleManager : NetworkBehaviour
         battleData[entityIndex].ActionVisual.AddSteps(movement);
         currentMovement[stepCount] = movement;
         stepCount++;
-
-        if (stepCount < maxSteps) return;
-        actionIndex++;
     }
 
     public void ActionInput(int actionChoice)
@@ -144,6 +149,7 @@ public class BattleManager : NetworkBehaviour
         turnData[entityIndex] = currentTurnData;
         HideVisuals();
         actionIndex = 0;
+        actionSelectable = false;
         entityIndex++;
         SetNextControllableCharacter();
 
@@ -164,6 +170,7 @@ public class BattleManager : NetworkBehaviour
             SortEntitiesBySpeed();
             actionIndex = 0;
             entityIndex = 0;
+            actionSelectable = true;
             
             turnData = new EntityTurnData[battleData.Count];
             SetNextControllableCharacter();
@@ -174,7 +181,6 @@ public class BattleManager : NetworkBehaviour
         EntityTurnData currentTurnData = turnData[entityIndex];
         Vector3[] movement = currentTurnData.Movement;
         int actionChoice = currentTurnData.ActionChoice;
-        //Debug.Log($"Turn {entityIndex}: {entityObject.Entity.Name}, {turnData.Movement.Length}");
 
         if (currentBattleData.EntityObject.Entity.EnemyAI)
         {
@@ -187,22 +193,40 @@ public class BattleManager : NetworkBehaviour
         {
             case ActionStage.Moving:
                 currentBattleData.EntityObject.PerformMovement(movement, battleData.ToArray(), currentBattleData);
-                actionIndex++;
                 break;
             case ActionStage.Performing:
-                entityIndex++;
-                actionIndex = 0;
                 currentBattleData.EntityObject.PerformAction(actionChoice, battleData.ToArray(), currentBattleData);
                 break;
         }
     }
 
-    public void DisplayActionMenu(InputAction.CallbackContext context)
+    public void IncrementCycle()
+    {
+        switch ((ActionStage)actionIndex)
+        {
+            case ActionStage.Moving:
+                actionIndex++;
+                break;
+            case ActionStage.Performing:
+                entityIndex++;
+                actionIndex = 0;
+                break;
+        }
+        PreformCycle();
+    }
+
+    public void DisplayActionMenuInput(InputAction.CallbackContext context)
     {
         if (!context.performed) return;
-        if (actionIndex != 1) return;
+        DisplayActionMenu();
+    }
 
+    public void DisplayActionMenu()
+    {
+        //if (actionIndex == 0) return;
+        if (!actionSelectable) return;
         actionMenu.SetActive(true);
+        endMovmentButton.SetActive(false);
         EntityObject entityObject = battleData[entityIndex].EntityObject;
         for (int i = 0; i < actionMenu.transform.childCount; i++)
         {
