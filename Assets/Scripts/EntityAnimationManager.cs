@@ -21,7 +21,8 @@ public class EntityAnimationManager : MonoBehaviour
 
     public void Animate(Action action)
     {
-        animator.CrossFade(action.AnimatorName, 0, 0);
+        Debug.Log(action.AnimationName);
+        animator.CrossFade(action.AnimationName, 0, 0);
     }
 
     public void OnDealDamage()

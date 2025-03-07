@@ -656,7 +656,7 @@ Rigidbody:
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 80
+  m_Constraints: 112
   m_CollisionDetection: 0
 --- !u!114 &2830018372457857413
 MonoBehaviour:
@@ -771,7 +771,7 @@ Animator:
   m_GameObject: {fileID: 4859987169649165846}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 447aab16288223e4493db848a4bd2860, type: 2}
+  m_Controller: {fileID: 9100000, guid: 0aa783895ed0b994cbf6b6d7580475cf, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -840,7 +840,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1813328103328816376
 Transform:
   m_ObjectHideFlags: 0

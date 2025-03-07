@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   requiresCharge: 0
   actionName: Simple Attack
+  animationName: SwordSwing0
   effectTiles:
   - {x: 0, y: 1}
   damage: 2
