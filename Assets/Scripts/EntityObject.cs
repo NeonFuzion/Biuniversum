@@ -10,6 +10,7 @@ public class EntityObject : MonoBehaviour
     [SerializeField] float moveSpeed;
 
     [SerializeField] Entity entity;
+    [SerializeField] EntityAnimationManager animationManager;
     [SerializeField] UnityEvent onFinishActionState;
 
     int actionChoice;
@@ -17,7 +18,6 @@ public class EntityObject : MonoBehaviour
     Rigidbody rigidbody;
     EntityState state;
     Health healthScript;
-    Animator animator;
     List<Vector3> movePositions;
     EntityBattleData[] entityBattleData;
     EntityBattleData currentEntityBattleData;
@@ -30,7 +30,6 @@ public class EntityObject : MonoBehaviour
     {
         rigidbody = GetComponent<Rigidbody>();
         healthScript = GetComponent<Health>();
-        animator = GetComponent<Animator>();
 
         healthScript.Initialize((int)entity.Health);
     }
@@ -63,7 +62,7 @@ public class EntityObject : MonoBehaviour
         }
     }
 
-    void DealDamage()
+    public void DealDamage()
     {
         Debug.Log("Preforming action");
         Action action = entity.Actions[actionChoice];
@@ -99,7 +98,7 @@ public class EntityObject : MonoBehaviour
 
     public void PerformAction(int actionChoice)
     {
-        animator.CrossFade(currentEntityBattleData.EntityObject.Entity.Actions[actionChoice].AnimatorName, 0, 0);
+        animationManager.Animate(currentEntityBattleData.EntityObject.Entity.Actions[actionChoice]);
     }
 
     public void PerformMovement(Vector3[] movement)
