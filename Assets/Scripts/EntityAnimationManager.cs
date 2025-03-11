@@ -32,6 +32,6 @@ public class EntityAnimationManager : MonoBehaviour
 
     public void OnFinishAnimation()
     {
-        onDealDamage?.Invoke();
+        onFinishAnimation?.Invoke();
     }
 }

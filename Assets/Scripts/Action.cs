@@ -1,7 +1,8 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu]
-public class Action : ScriptableObject
+public abstract class Action : ScriptableObject
 {
     [SerializeField] bool requiresCharge;
     [SerializeField] string actionName, animationName;
@@ -13,4 +14,6 @@ public class Action : ScriptableObject
     public string AnimationName { get => animationName; }
 
     public Vector2[] EffectTiles { get => effectTiles; }
+
+    public abstract void PreformAction(List<EntityBattleData> entityBattleData, EntityBattleData currentEntityBattleData, int actionStage);
 }

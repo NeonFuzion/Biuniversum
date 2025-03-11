@@ -5,7 +5,6 @@ public class ActionVisual : MonoBehaviour
     [SerializeField] Transform[] tiles;
     [SerializeField] Transform tileManager;
 
-    Transform target;
     LineRenderer lineRenderer;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -20,18 +19,14 @@ public class ActionVisual : MonoBehaviour
         
     }
 
-    public void Initialize(Transform target)
+    public void Initialize()
     {
-        this.target = target;
-
         lineRenderer = GetComponent<LineRenderer>();
         lineRenderer.SetPosition(0, new Vector3(transform.position.x, 0, transform.position.z));
     }
 
     public void SetMovement()
     {
-        transform.position = new Vector3(target.position.x, 0, target.position.z);
-
         lineRenderer.enabled = true;
         lineRenderer.positionCount = 1;
     }
@@ -44,7 +39,7 @@ public class ActionVisual : MonoBehaviour
 
     public void ShowEffectedTiles(Action action)
     {
-        tileManager.position = lineRenderer.GetPosition(lineRenderer.positionCount - 1) + transform.position;
+        tileManager.localPosition = lineRenderer.GetPosition(lineRenderer.positionCount - 1);
         for (int i = 0; i < tiles.Length; i++)
         {
             bool withinBounds = action.EffectTiles.Length > i;

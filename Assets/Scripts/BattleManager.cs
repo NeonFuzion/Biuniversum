@@ -5,8 +5,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
-using Unity.Netcode;
-using NUnit.Framework;
 using UnityEngine.UI;
 
 public class BattleManager : MonoBehaviour
@@ -26,15 +24,13 @@ public class BattleManager : MonoBehaviour
     {
         turnData = new EntityTurnData[battleData.Count];
 
-        foreach (EntityBattleData currentEntityBattleData in battleData)
+        foreach (EntityBattleData currentBattleData in battleData)
         {
-            EntityObject entityObject = currentEntityBattleData.EntityObject;
-            entityObject.Initialize(battleData.ToArray(), currentEntityBattleData);
-            entityObject.OnFinishActionState.AddListener(IncrementCycle);
-            entityObject.GetComponent<Health>().Initialize((int)entityObject.Entity.Health);
-
-            if (!currentEntityBattleData.ActionVisual) continue;
-            currentEntityBattleData.ActionVisual.Initialize(entityObject.transform);
+            bool flip = currentBattleData.ArenaSide == ArenaSide.North;
+            EntityManager manager = currentBattleData.EntityManager;
+            manager.ModelManager.transform.eulerAngles = new Vector3(0, flip ? 180 : 0, 0);
+            manager.EntityObject.OnFinishActionState.AddListener(IncrementCycle);
+            manager.Initialize();
         }
 
         SortEntitiesBySpeed();
@@ -61,7 +57,7 @@ public class BattleManager : MonoBehaviour
         if (entityIndex >= battleData.Count) return;
         while (true)
         {
-            Entity currentEntity = battleData[entityIndex].EntityObject.Entity;
+            Entity currentEntity = battleData[entityIndex].EntityManager.Entity;
 
             if (!currentEntity.EnemyAI) break;
             entityIndex++;
@@ -90,9 +86,9 @@ public class BattleManager : MonoBehaviour
         stepCount = 0;
         actionSelectable = true;
         endMovmentButton.SetActive(true);
-        maxSteps = battleData[entityIndex].EntityObject.Entity.MoveTiles;
+        maxSteps = battleData[entityIndex].EntityManager.Entity.MoveTiles;
         currentMovement = new Vector3[maxSteps];
-        battleData[entityIndex].ActionVisual.SetMovement();
+        battleData[entityIndex].EntityManager.ActionVisual.SetMovement();
     }
 
     void SortEntitiesBySpeed()
@@ -103,7 +99,7 @@ public class BattleManager : MonoBehaviour
             int index = 0;
             for (int j = 0; j < i; j++)
             {
-                Entity entity = battleData[j].EntityObject.Entity;
+                Entity entity = battleData[j].EntityManager.Entity;
                 if (entity.Speed < maxSpeed) continue;
                 index = j;
                 maxSpeed = entity.Speed;
@@ -113,7 +109,7 @@ public class BattleManager : MonoBehaviour
             for (int j = 0; j < i; j++)
             {
                 EntityBattleData currentBattleData = battleData[j];
-                if (currentBattleData.EntityObject.Entity.Speed != maxSpeed) continue;
+                if (currentBattleData.EntityManager.Entity.Speed != maxSpeed) continue;
                 sameSpeedEntities.Add(currentBattleData);
             }
 
@@ -130,7 +126,7 @@ public class BattleManager : MonoBehaviour
         if (stepCount >= maxSteps) return;
         Vector2 input = context.action.ReadValue<Vector2>();
         Vector3 movement = new Vector3(input.x, 0, input.y);
-        EntityObject entityObject = battleData[entityIndex].EntityObject;
+        EntityObject entityObject = battleData[entityIndex].EntityManager.EntityObject;
         movement += stepCount <= 0 ? Vector3.zero : currentMovement[stepCount - 1];
 
         Vector3 worldPosition = movement + entityObject.transform.position;
@@ -139,7 +135,7 @@ public class BattleManager : MonoBehaviour
         if (worldPosition.z > northClamp) return;
         if (worldPosition.z < southClamp) return;
 
-        battleData[entityIndex].ActionVisual.AddSteps(movement);
+        battleData[entityIndex].EntityManager.ActionVisual.AddSteps(movement);
         currentMovement[stepCount] = movement;
         stepCount++;
     }
@@ -184,9 +180,9 @@ public class BattleManager : MonoBehaviour
         Vector3[] movement = currentTurnData.Movement;
         int actionChoice = currentTurnData.ActionChoice;
 
-        if (currentBattleData.EntityObject.Entity.EnemyAI)
+        if (currentBattleData.EntityManager.Entity.EnemyAI)
         {
-            Entity entity = currentBattleData.EntityObject.Entity;
+            Entity entity = currentBattleData.EntityManager.Entity;
             movement = entity.EnemyAI.ChooseMovement(battleData.ToArray(), currentBattleData);
             actionChoice = entity.EnemyAI.ChooseAction(battleData.ToArray(), currentBattleData);
         }
@@ -194,10 +190,12 @@ public class BattleManager : MonoBehaviour
         switch ((ActionStage)actionIndex)
         {
             case ActionStage.Moving:
-                currentBattleData.EntityObject.PerformMovement(movement);
+                currentBattleData.EntityManager.EntityObject.PerformMovement(movement);
                 break;
             case ActionStage.Performing:
-                currentBattleData.EntityObject.PerformAction(actionChoice);
+                Action action = currentBattleData.EntityManager.Entity.Actions[actionChoice];
+                currentBattleData.EntityManager.EntityObject.PerformAction(action);
+                currentBattleData.EntityManager.EntityAnimationManager.Animate(action);
                 break;
         }
     }
@@ -229,14 +227,15 @@ public class BattleManager : MonoBehaviour
         if (!actionSelectable) return;
         actionMenu.SetActive(true);
         endMovmentButton.SetActive(false);
-        EntityObject entityObject = battleData[entityIndex].EntityObject;
+        EntityObject entityObject = battleData[entityIndex].EntityManager.EntityObject;
+        EntityManager entityManager = battleData[entityIndex].EntityManager;
         for (int i = 0; i < actionMenu.transform.childCount; i++)
         {
             GameObject actionButton = actionMenu.transform.GetChild(i).gameObject;
-            if (entityObject.Entity.Actions.Length > i)
+            if (entityManager.Entity.Actions.Length > i)
             {
                 ActionHover script = actionButton.GetComponent<ActionHover>();
-                Action currentAction = entityObject.Entity.Actions[i];
+                Action currentAction = entityManager.Entity.Actions[i];
                 script.Initialize(currentAction);
                 actionButton.SetActive(true);
             }
@@ -249,22 +248,22 @@ public class BattleManager : MonoBehaviour
 
     public void ShowEffectedTiles(Action action)
     {
-        battleData[entityIndex].ActionVisual.ShowEffectedTiles(action);
+        battleData[entityIndex].EntityManager.ActionVisual.ShowEffectedTiles(action);
     }
 
     public void HideEffectedTiles()
     {
-        battleData[entityIndex].ActionVisual.HideEffectedTiles();
+        battleData[entityIndex].EntityManager.ActionVisual.HideEffectedTiles();
     }
 
     public void ShowVisuals(Action action)
     {
-        battleData[entityIndex].ActionVisual.ShowVisuals(action);
+        battleData[entityIndex].EntityManager.ActionVisual.ShowVisuals(action);
     }
 
     public void HideVisuals()
     {
-        battleData[entityIndex].ActionVisual.HideVisuals();
+        battleData[entityIndex].EntityManager.ActionVisual.HideVisuals();
     }
 }
 
@@ -289,19 +288,16 @@ public class EntityTurnData
 [Serializable]
 public class EntityBattleData
 {
-    [SerializeField] EntityObject entityObject;
+    [SerializeField] EntityManager entityManager;
     [SerializeField] ArenaSide arenaSide;
-    [SerializeField] ActionVisual actionVisual;
 
-    public EntityObject EntityObject { get => entityObject; }
+    public EntityManager EntityManager { get => entityManager; }
     public ArenaSide ArenaSide { get => arenaSide; }
-    public ActionVisual ActionVisual { get => actionVisual; }
 
-    public EntityBattleData(EntityObject entityObject, ArenaSide arenaSide, ActionVisual actionVisual)
+    public EntityBattleData(EntityManager entityManager, ArenaSide arenaSide)
     {
-        this.entityObject = entityObject;
+        this.entityManager = entityManager;
         this.arenaSide = arenaSide;
-        this.actionVisual = actionVisual;
     }
 }
 
