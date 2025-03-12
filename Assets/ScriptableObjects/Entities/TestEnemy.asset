@@ -19,4 +19,5 @@ MonoBehaviour:
   moveTiles: 2
   enemyAI: {fileID: 11400000, guid: c021757b85ca1c948a511410d4992226, type: 2}
   actions:
-  - {fileID: 11400000, guid: 92fe0c8f201e97e46ab8fa47c6d1f80a, type: 2}
+  - {fileID: 11400000, guid: ae99be4c8f3b6fe40874663bcec75bc8, type: 2}
+  - {fileID: 11400000, guid: 69f41d10937d2d644a9b99f0d007ddf6, type: 2}

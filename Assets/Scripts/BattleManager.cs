@@ -30,6 +30,7 @@ public class BattleManager : MonoBehaviour
             EntityManager manager = currentBattleData.EntityManager;
             manager.ModelManager.transform.eulerAngles = new Vector3(0, flip ? 180 : 0, 0);
             manager.EntityObject.OnFinishActionState.AddListener(IncrementCycle);
+            manager.EntityObject.Initizalize(battleData, currentBattleData);
             manager.Initialize();
         }
 
@@ -162,19 +163,6 @@ public class BattleManager : MonoBehaviour
 
     public void PreformCycle()
     {
-        if (entityIndex >= battleData.Count)
-        {
-            SortEntitiesBySpeed();
-            actionIndex = 0;
-            entityIndex = 0;
-            actionSelectable = true;
-            
-            turnData = new EntityTurnData[battleData.Count];
-            SetNextControllableCharacter();
-            SetupMovement();
-            return;
-        }
-
         EntityBattleData currentBattleData = battleData[entityIndex];
         EntityTurnData currentTurnData = turnData[entityIndex];
         Vector3[] movement = currentTurnData.Movement;
@@ -212,7 +200,22 @@ public class BattleManager : MonoBehaviour
                 actionIndex = 0;
                 break;
         }
-        PreformCycle();
+
+        if (entityIndex >= battleData.Count)
+        {
+            SortEntitiesBySpeed();
+            actionIndex = 0;
+            entityIndex = 0;
+            actionSelectable = true;
+            
+            turnData = new EntityTurnData[battleData.Count];
+            SetNextControllableCharacter();
+            SetupMovement();
+        }
+        else
+        {
+            PreformCycle();
+        }
     }
 
     public void DisplayActionMenuInput(InputAction.CallbackContext context)

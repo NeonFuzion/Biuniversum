@@ -22,7 +22,6 @@ public class ActionVisual : MonoBehaviour
     public void Initialize()
     {
         lineRenderer = GetComponent<LineRenderer>();
-        lineRenderer.SetPosition(0, new Vector3(transform.position.x, 0, transform.position.z));
     }
 
     public void SetMovement()

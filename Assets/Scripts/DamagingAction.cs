@@ -1,7 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu]
-public class DamagingAction : Action
+public abstract class DamagingAction : Action
 {
     [SerializeField] int damage;
 

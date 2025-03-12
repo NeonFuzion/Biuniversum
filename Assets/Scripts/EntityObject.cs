@@ -49,15 +49,13 @@ public class EntityObject : MonoBehaviour
                 speedCurveTime += Time.deltaTime;
                 transform.position = startPostion + speedCurve.Evaluate(speedCurveTime) * targetVector;
 
-                if (Vector3.Distance(transform.position, movePositions[0]) > 0.1f) break;
-                transform.position = movePositions[0];
+                if (speedCurveTime < 1) break;
                 movePositions.RemoveAt(0);
+                speedCurveTime = 0;
+
+                if (movePositions.Count == 0) break;
                 startPostion = transform.position;
                 targetVector = movePositions[0] - transform.position;
-
-                if (movePositions.Count > 0) break;
-                state = EntityState.Attacking;
-                onFinishActionState?.Invoke();
                 break;
         }
     }
@@ -91,6 +89,8 @@ public class EntityObject : MonoBehaviour
         Debug.Log("Moving");
         state = EntityState.Moving;
         movePositions = new List<Vector3>();
+        speedCurveTime = 0;
+        startPostion = transform.position;
         for (int i = 0; i < movement.Length; i++)
         {
             Vector3 newPosition = transform.position + movement[i];
