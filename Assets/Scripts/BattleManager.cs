@@ -11,14 +11,14 @@ public class BattleManager : MonoBehaviour
 {
     [SerializeField] int northClamp, eastClamp, southClamp, westClamp;
     [SerializeField] GameObject actionMenu, endMovmentButton;
-    [SerializeField] UnityEvent onContinue;
+    [SerializeField] UnityEvent onContinue, onEndSelection;
     [SerializeField] List<EntityBattleData> battleData;
     
     EntityTurnData[] turnData;
     Vector3[] currentMovement;
 
     int entityIndex, actionIndex, maxSteps, stepCount;
-    bool actionSelectable;
+    bool actionSelectable, cyclingTurn;
 
     void Awake()
     {
@@ -38,6 +38,7 @@ public class BattleManager : MonoBehaviour
         actionIndex = 0;
         entityIndex = 0;
         actionSelectable = false;
+        cyclingTurn = false;
         SetNextControllableCharacter();
     }
 
@@ -71,21 +72,27 @@ public class BattleManager : MonoBehaviour
 
     void EndSelection()
     {
+        Debug.Log("Ending selection");
         actionIndex = 0;
         entityIndex = 0;
+        endMovmentButton.SetActive(false);
         
         for (int i = 0; i < turnData.Length; i++)
         {
             if (turnData[i] != null) continue;
             turnData[i] = new EntityTurnData(-1, new Vector3[] {});
         }
+        cyclingTurn = true;
         PreformCycle();
     }
 
     void SetupMovement()
     {
+        if (cyclingTurn) return;
+        Debug.Log("Setting up movement");
         stepCount = 0;
         actionSelectable = true;
+        cyclingTurn = false;
         endMovmentButton.SetActive(true);
         maxSteps = battleData[entityIndex].EntityManager.Entity.MoveTiles;
         currentMovement = new Vector3[maxSteps];
@@ -125,8 +132,11 @@ public class BattleManager : MonoBehaviour
         if (!context.performed) return;
         if (actionIndex != 0) return;
         if (stepCount >= maxSteps) return;
+        if (cyclingTurn) return;
         Vector2 input = context.action.ReadValue<Vector2>();
         Vector3 movement = new Vector3(input.x, 0, input.y);
+
+        if (movement.magnitude > 1) return;
         EntityObject entityObject = battleData[entityIndex].EntityManager.EntityObject;
         movement += stepCount <= 0 ? Vector3.zero : currentMovement[stepCount - 1];
 
@@ -150,6 +160,7 @@ public class BattleManager : MonoBehaviour
         actionSelectable = false;
         entityIndex++;
         SetNextControllableCharacter();
+        Debug.Log(entityIndex);
 
         if (entityIndex < turnData.Length)
         {
@@ -201,12 +212,14 @@ public class BattleManager : MonoBehaviour
                 break;
         }
 
+        Debug.Log(entityIndex + " | " + battleData.Count);
         if (entityIndex >= battleData.Count)
         {
             SortEntitiesBySpeed();
             actionIndex = 0;
             entityIndex = 0;
             actionSelectable = true;
+            cyclingTurn = false;
             
             turnData = new EntityTurnData[battleData.Count];
             SetNextControllableCharacter();
@@ -293,14 +306,17 @@ public class EntityBattleData
 {
     [SerializeField] EntityManager entityManager;
     [SerializeField] ArenaSide arenaSide;
+    [SerializeField] Vector2Int position;
 
     public EntityManager EntityManager { get => entityManager; }
     public ArenaSide ArenaSide { get => arenaSide; }
+    public Vector2Int Position { get => position;}
 
-    public EntityBattleData(EntityManager entityManager, ArenaSide arenaSide)
+    public EntityBattleData(EntityManager entityManager, ArenaSide arenaSide, Vector2Int position)
     {
         this.entityManager = entityManager;
         this.arenaSide = arenaSide;
+        this.position = position;
     }
 }
 

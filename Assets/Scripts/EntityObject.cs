@@ -38,7 +38,6 @@ public class EntityObject : MonoBehaviour
         switch (state)
         {
             case EntityState.Moving:
-
                 if (movePositions.Count == 0)
                 {
                     state = EntityState.Attacking;
@@ -56,6 +55,21 @@ public class EntityObject : MonoBehaviour
                 if (movePositions.Count == 0) break;
                 startPostion = transform.position;
                 targetVector = movePositions[0] - transform.position;
+
+                bool pathBlocked = false;
+                foreach (EntityBattleData battleData in entityBattleData)
+                {
+                    if (battleData == currentEntityBattleData) continue;
+                    if (Vector3.Distance(battleData.EntityManager.transform.position, movePositions[0]) > 0.1f) continue;
+                    pathBlocked = true;
+                    break;
+                }
+                if (pathBlocked)
+                {
+                    state = EntityState.Attacking;
+                    onFinishActionState?.Invoke();
+                    break;
+                }
                 break;
         }
     }
@@ -81,6 +95,7 @@ public class EntityObject : MonoBehaviour
     public void FinishActionAnimation()
     {
         Debug.Log("Finishing action animation");
+        //transform.position = new (Mathf.RoundToInt(transform.position.x), 0, Mathf.RoundToInt(transform.position.z));
         onFinishActionState?.Invoke();
     }
 
@@ -104,6 +119,8 @@ public class EntityObject : MonoBehaviour
 
             movePositions.Add(newPosition);
         }
+        targetVector = movePositions[0] - transform.position;
+        Debug.Log(string.Join(", ", movement));
     }
 }
 
