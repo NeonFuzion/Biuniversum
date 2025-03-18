@@ -11,40 +11,37 @@ public class MeleeEnemy : EnemyAI
         return Random.Range(0, entity.Actions.Length);
     }
 
-    public override Vector3[] ChooseMovement(EntityBattleData[] battleData, EntityBattleData currentEntityBattleData)
+    public override Vector2Int[] ChooseMovement(EntityBattleData[] battleData, EntityBattleData currentEntityBattleData)
     {
         Debug.Log("Enemy moving");
         float distance = 0;
-        EntityManager entityManager = currentEntityBattleData.EntityManager;
-        EntityManager closestEnemy = null;
+        EntityBattleData closestEnemy = null;
         foreach (EntityBattleData currentData in battleData)
         {
-            EntityManager currentEntityManager = currentData.EntityManager;
-
-            if (currentEntityManager.Entity.EnemyAI) continue;
-            float newDistance = Vector3.Distance(currentEntityManager.transform.position, entityManager.transform.position);
+            if (currentData.EntityManager.Entity.EnemyAI) continue;
+            float newDistance = Vector2.Distance(currentData.Position, currentEntityBattleData.Position);
 
             if (newDistance < distance) continue;
             distance = newDistance;
-            closestEnemy = currentEntityManager;
+            closestEnemy = currentData;
         }
 
-        Vector3[] directions = new Vector3[] { Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
-        Vector3[] path = new Vector3[entityManager.Entity.MoveTiles];
-        for (int i = 0; i < closestEnemy.Entity.MoveTiles; i++)
+        Vector2Int[] directions = new Vector2Int[] { Vector2Int.right, Vector2Int.left, Vector2Int.up, Vector2Int.down };
+        Vector2Int[] path = new Vector2Int[currentEntityBattleData.EntityManager.Entity.MoveTiles];
+        for (int i = 0; i < closestEnemy.EntityManager.Entity.MoveTiles; i++)
         {
             float possibleDistance = int.MaxValue;
             int index = 0;
             for (int j = 0; j < directions.Length; j++)
             {
-                Vector3 newPosition = entityManager.transform.position + (i <= 0 ? Vector3.zero : path[i - 1]) + directions[j];
-                float testDistance = Vector3.Distance(newPosition, closestEnemy.transform.position);
+                Vector2Int newPosition = currentEntityBattleData.Position + (i <= 0 ? new () : path[i - 1]) + directions[j];
+                float testDistance = Vector2.Distance(newPosition, closestEnemy.Position);
 
                 if (testDistance > possibleDistance) continue;
                 possibleDistance = testDistance;
                 index = j;
             }
-            path[i] = (i <= 0 ? Vector3.zero : path[i - 1]) + directions[index];
+            path[i] = (i <= 0 ? new () : path[i - 1]) + directions[index];
         }
 
         return path;

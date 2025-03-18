@@ -4,6 +4,7 @@ public class ActionVisual : MonoBehaviour
 {
     [SerializeField] Transform[] tiles;
     [SerializeField] Transform tileManager;
+    [SerializeField] GameObject pointer;
 
     LineRenderer lineRenderer;
 
@@ -28,10 +29,12 @@ public class ActionVisual : MonoBehaviour
     {
         lineRenderer.enabled = true;
         lineRenderer.positionCount = 1;
+        pointer.SetActive(true);
     }
 
     public void AddSteps(Vector3 movement)
     {
+        Debug.Log("Adding steps");
         int lastIndex = lineRenderer.positionCount++;
         lineRenderer.SetPosition(lastIndex, movement);
     }
@@ -62,6 +65,7 @@ public class ActionVisual : MonoBehaviour
     {
         HideEffectedTiles();
         lineRenderer.enabled = false;
+        pointer.SetActive(false);
     }
 
     public void ShowVisuals(Action action)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
@@ -13,9 +14,11 @@ public class BattleManager : MonoBehaviour
     [SerializeField] GameObject actionMenu, endMovmentButton;
     [SerializeField] UnityEvent onContinue, onEndSelection;
     [SerializeField] List<EntityBattleData> battleData;
+
+    public static BattleDataManager BattleDataManager;
     
     EntityTurnData[] turnData;
-    Vector3[] currentMovement;
+    Vector2Int[] currentMovement;
 
     int entityIndex, actionIndex, maxSteps, stepCount;
     bool actionSelectable, cyclingTurn;
@@ -80,7 +83,7 @@ public class BattleManager : MonoBehaviour
         for (int i = 0; i < turnData.Length; i++)
         {
             if (turnData[i] != null) continue;
-            turnData[i] = new EntityTurnData(-1, new Vector3[] {});
+            turnData[i] = new EntityTurnData(-1, new Vector2Int[] {});
         }
         cyclingTurn = true;
         PreformCycle();
@@ -95,8 +98,17 @@ public class BattleManager : MonoBehaviour
         cyclingTurn = false;
         endMovmentButton.SetActive(true);
         maxSteps = battleData[entityIndex].EntityManager.Entity.MoveTiles;
-        currentMovement = new Vector3[maxSteps];
+        currentMovement = new Vector2Int[maxSteps];
         battleData[entityIndex].EntityManager.ActionVisual.SetMovement();
+    }
+
+    void CheckPath()
+    {
+        //Vector2Int currentPosition = 
+        foreach (Vector2Int position in currentMovement)
+        {
+
+        }
     }
 
     void SortEntitiesBySpeed()
@@ -133,20 +145,20 @@ public class BattleManager : MonoBehaviour
         if (actionIndex != 0) return;
         if (stepCount >= maxSteps) return;
         if (cyclingTurn) return;
+        Debug.Log("Selecting path");
         Vector2 input = context.action.ReadValue<Vector2>();
-        Vector3 movement = new Vector3(input.x, 0, input.y);
+        Vector2Int movement = new (Mathf.RoundToInt(input.x), Mathf.RoundToInt(input.y));
 
-        if (movement.magnitude > 1) return;
-        EntityObject entityObject = battleData[entityIndex].EntityManager.EntityObject;
-        movement += stepCount <= 0 ? Vector3.zero : currentMovement[stepCount - 1];
+        if (Mathf.Abs(movement.x) == Mathf.Abs(movement.y)) return;
+        movement += stepCount <= 0 ? new () : currentMovement[stepCount - 1];
 
-        Vector3 worldPosition = movement + entityObject.transform.position;
+        Vector2Int worldPosition = movement + BattleDataManager.GetPositionByIndex(entityIndex);
         if (worldPosition.x > eastClamp) return;
         if (worldPosition.x < westClamp) return;
-        if (worldPosition.z > northClamp) return;
-        if (worldPosition.z < southClamp) return;
+        if (worldPosition.y > northClamp) return;
+        if (worldPosition.y < southClamp) return;
 
-        battleData[entityIndex].EntityManager.ActionVisual.AddSteps(movement);
+        battleData[entityIndex].EntityManager.ActionVisual.AddSteps(EntityObject.TileToWorldPosition(movement));
         currentMovement[stepCount] = movement;
         stepCount++;
     }
@@ -176,7 +188,7 @@ public class BattleManager : MonoBehaviour
     {
         EntityBattleData currentBattleData = battleData[entityIndex];
         EntityTurnData currentTurnData = turnData[entityIndex];
-        Vector3[] movement = currentTurnData.Movement;
+        Vector2Int[] movement = currentTurnData.Movement;
         int actionChoice = currentTurnData.ActionChoice;
 
         if (currentBattleData.EntityManager.Entity.EnemyAI)
@@ -189,7 +201,7 @@ public class BattleManager : MonoBehaviour
         switch ((ActionStage)actionIndex)
         {
             case ActionStage.Moving:
-                currentBattleData.EntityManager.EntityObject.PerformMovement(movement);
+                currentBattleData.EntityManager.EntityObject.PerformMovement(movement.Select(x => EntityObject.TileToWorldPosition(x)).ToArray());
                 break;
             case ActionStage.Performing:
                 Action action = currentBattleData.EntityManager.Entity.Actions[actionChoice];
@@ -287,13 +299,13 @@ public class EntityTurnData
 {
     int actionChoice;
 
-    Vector3[] movement;
+    Vector2Int[] movement;
     
     public int ActionChoice { get => actionChoice; set => actionChoice = value; }
     
-    public Vector3[] Movement { get => movement; set => movement = value; }
+    public Vector2Int[] Movement { get => movement; set => movement = value; }
 
-    public EntityTurnData(int actionChoice, Vector3[] movement)
+    public EntityTurnData(int actionChoice, Vector2Int[] movement)
     {
         this.actionChoice = actionChoice;
 
@@ -310,7 +322,7 @@ public class EntityBattleData
 
     public EntityManager EntityManager { get => entityManager; }
     public ArenaSide ArenaSide { get => arenaSide; }
-    public Vector2Int Position { get => position;}
+    public Vector2Int Position { get => position; set => position = value; }
 
     public EntityBattleData(EntityManager entityManager, ArenaSide arenaSide, Vector2Int position)
     {
@@ -320,6 +332,69 @@ public class EntityBattleData
     }
 }
 
+public class BattleDataManager
+{
+    List<EntityBattleData> battleData;
+
+    public BattleDataManager(List<EntityBattleData> battleData)
+    {
+        this.battleData = new ();
+        foreach (EntityBattleData data in battleData)
+        {
+            Vector3 entityPosition = data.EntityManager.transform.position;
+            data.Position = EntityObject.WorldToTilePosition(entityPosition);
+            this.battleData.Add(data);
+        }
+    }
+
+    public Vector2Int GetPositionByIndex(int index) => battleData[index].Position;
+
+    public void AddEntityPosition(EntityBattleData data) => battleData.Add(data);
+
+    public void UpdatePosition(EntityManager entityManager, Vector2Int position)
+    {
+        foreach (EntityBattleData data in battleData)
+        {
+            if (data.EntityManager != entityManager) continue;
+            data.Position = position;
+            return;
+        }
+    }
+
+    public void SortBySpeed()
+    {
+        List<EntityBattleData> dataCopy = battleData.Select(data => data).ToList();
+
+        battleData.Clear();
+        System.Random random = new ();
+        while (dataCopy.Count > 0)
+        {
+            int maxSpeed = (int)dataCopy.Max(data => data.EntityManager.Entity.Speed);
+            var fastest = dataCopy.Where(data => (int)data.EntityManager.Entity.Speed == maxSpeed);
+            battleData.AddRange(fastest);
+        }
+        /*
+        List<EntityBattleData> fastest = new ();
+        battleData.Clear();
+        while (dataCopy.Count > 0)
+        {
+            int maxSpeed = dataCopy.Max(x => (int)x.EntityManager.Entity.Speed);
+            for (int i = 0; i < dataCopy.Count; i++)
+            {
+                EntityBattleData data = dataCopy[i];
+                if (data.EntityManager.Entity.Speed != maxSpeed) continue;
+                fastest.Add(data);
+                dataCopy.RemoveAt(i--);
+            }
+            while (fastest.Count > 0)
+            {
+                int rand = UnityEngine.Random.Range(0, fastest.Count);
+                battleData.Add(fastest[rand]);
+                fastest.RemoveAt(rand);
+            }
+        }*/
+    }
+}
 
 public enum ActionStage { Moving, Performing }
 public enum ArenaSide { North, South }

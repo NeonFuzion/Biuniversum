@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Experimental.AI;
 using UnityEngine.InputSystem;
 
 public class EntityObject : MonoBehaviour
@@ -15,7 +16,6 @@ public class EntityObject : MonoBehaviour
     float speedCurveTime;
 
     EntityState state;
-    Health healthScript;
     List<Vector3> movePositions;
     Action action;
     Vector3 targetVector, startPostion;
@@ -27,8 +27,6 @@ public class EntityObject : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        healthScript = GetComponent<Health>();
-
         speedCurveTime = 0;
     }
 
@@ -38,14 +36,7 @@ public class EntityObject : MonoBehaviour
         switch (state)
         {
             case EntityState.Moving:
-                if (movePositions.Count == 0)
-                {
-                    state = EntityState.Attacking;
-                    onFinishActionState?.Invoke();
-                    break;
-                }
-
-                speedCurveTime += Time.deltaTime;
+                speedCurveTime += Time.deltaTime * moveSpeed;
                 transform.position = startPostion + speedCurve.Evaluate(speedCurveTime) * targetVector;
 
                 if (speedCurveTime < 1) break;
@@ -55,23 +46,15 @@ public class EntityObject : MonoBehaviour
                 if (movePositions.Count == 0) break;
                 startPostion = transform.position;
                 targetVector = movePositions[0] - transform.position;
-
-                bool pathBlocked = false;
-                foreach (EntityBattleData battleData in entityBattleData)
-                {
-                    if (battleData == currentEntityBattleData) continue;
-                    if (Vector3.Distance(battleData.EntityManager.transform.position, movePositions[0]) > 0.1f) continue;
-                    pathBlocked = true;
-                    break;
-                }
-                if (pathBlocked)
-                {
-                    state = EntityState.Attacking;
-                    onFinishActionState?.Invoke();
-                    break;
-                }
+                FinishMovement();
                 break;
         }
+    }
+
+    void FinishMovement()
+    {
+        state = EntityState.Attacking;
+        onFinishActionState?.Invoke();
     }
 
     public void Initizalize(List<EntityBattleData> entityBattleData, EntityBattleData currentEntityBattleData)
@@ -109,19 +92,33 @@ public class EntityObject : MonoBehaviour
         for (int i = 0; i < movement.Length; i++)
         {
             Vector3 newPosition = transform.position + movement[i];
+            newPosition = new Vector3(newPosition.x, 0, newPosition.z);
 
             foreach (EntityBattleData battleData in entityBattleData)
             {
-                Vector3 distanceVector = battleData.EntityManager.transform.position - newPosition;
-                distanceVector = new Vector3(distanceVector.x, 0, distanceVector.z);
-                if (distanceVector.magnitude == 0) return;
+                Vector3 currentPosition = battleData.EntityManager.transform.position;
+                currentPosition = new (currentPosition.x, 0, currentPosition.z);
+                Debug.Log(newPosition + " | " + currentPosition);
+                
+                if (Vector3.Distance(newPosition, currentPosition) < 0.1f) return;
             }
 
             movePositions.Add(newPosition);
         }
-        targetVector = movePositions[0] - transform.position;
-        Debug.Log(string.Join(", ", movement));
+
+        if (movePositions.Count > 0)
+        {
+            targetVector = movePositions[0] - transform.position;
+            Debug.Log(string.Join(", ", movement));
+        }
+        else
+        {
+            FinishMovement();
+        }
     }
+
+    public static Vector3 TileToWorldPosition(Vector2Int vector) => new Vector3(vector.x, 0, vector.x);
+    public static Vector2Int WorldToTilePosition(Vector3 vector) => new Vector2Int(Mathf.RoundToInt(vector.x), Mathf.RoundToInt(vector.y));
 }
 
 public enum EntityState { Idle, Moving, Attacking }

@@ -7,6 +7,7 @@ public class BasicAttack : DamagingAction
 {
     public override void PreformAction(List<EntityBattleData> entityBattleData, EntityBattleData currentEntityBattleData, int actionStage)
     {
+        Vector2[] shiftedEffectTiles = currentEntityBattleData.ArenaSide == ArenaSide.North ? EffectTiles.Select(x => -x).ToArray() : EffectTiles;
         foreach (EntityBattleData currentBattleData in entityBattleData)
         {
             if (currentBattleData == currentEntityBattleData) continue;
@@ -14,7 +15,7 @@ public class BasicAttack : DamagingAction
             Vector3 difference = currentBattleData.EntityManager.transform.position - currentEntityBattleData.EntityManager.transform.position;
             Vector2 currentPosition = new(Mathf.RoundToInt(difference.x), Mathf.RoundToInt(difference.z));
             
-            if (!EffectTiles.Contains(currentPosition)) continue;
+            if (!shiftedEffectTiles.Contains(currentPosition)) continue;
             currentBattleData.EntityManager.GetComponent<Health>().TakeDamage(Damage);
         }
     }
