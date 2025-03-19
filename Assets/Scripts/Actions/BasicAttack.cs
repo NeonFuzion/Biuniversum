@@ -5,10 +5,10 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Action/Attack/BasicAttack")]
 public class BasicAttack : DamagingAction
 {
-    public override void PreformAction(List<EntityBattleData> entityBattleData, EntityBattleData currentEntityBattleData, int actionStage)
+    public override void PreformAction(EntityBattleData currentEntityBattleData, int actionStage)
     {
         Vector2[] shiftedEffectTiles = currentEntityBattleData.ArenaSide == ArenaSide.North ? EffectTiles.Select(x => -x).ToArray() : EffectTiles;
-        foreach (EntityBattleData currentBattleData in entityBattleData)
+        foreach (EntityBattleData currentBattleData in BattleManager.BattleDataManager.GetList)
         {
             if (currentBattleData == currentEntityBattleData) continue;
             if (currentBattleData.ArenaSide == currentEntityBattleData.ArenaSide) continue;

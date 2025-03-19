@@ -19,7 +19,6 @@ public class EntityObject : MonoBehaviour
     List<Vector3> movePositions;
     Action action;
     Vector3 targetVector, startPostion;
-    List<EntityBattleData> entityBattleData;
     EntityBattleData currentEntityBattleData;
 
     public UnityEvent OnFinishActionState { get => onFinishActionState; }
@@ -57,9 +56,8 @@ public class EntityObject : MonoBehaviour
         onFinishActionState?.Invoke();
     }
 
-    public void Initizalize(List<EntityBattleData> entityBattleData, EntityBattleData currentEntityBattleData)
+    public void Initizalize(EntityBattleData currentEntityBattleData)
     {
-        this.entityBattleData = entityBattleData;
         this.currentEntityBattleData = currentEntityBattleData;
     }
 
@@ -72,7 +70,7 @@ public class EntityObject : MonoBehaviour
     public void DealDamage()
     {
         Debug.Log("Dealing damage");
-        action.PreformAction(entityBattleData, currentEntityBattleData, actionStage++);
+        action.PreformAction(currentEntityBattleData, actionStage++);
     }
 
     public void FinishActionAnimation()
@@ -94,7 +92,7 @@ public class EntityObject : MonoBehaviour
             Vector3 newPosition = transform.position + movement[i];
             newPosition = new Vector3(newPosition.x, 0, newPosition.z);
 
-            foreach (EntityBattleData battleData in entityBattleData)
+            foreach (EntityBattleData battleData in BattleManager.BattleDataManager.GetList)
             {
                 Vector3 currentPosition = battleData.EntityManager.transform.position;
                 currentPosition = new (currentPosition.x, 0, currentPosition.z);

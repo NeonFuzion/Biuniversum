@@ -4,19 +4,19 @@ using UnityEngine;
 [CreateAssetMenu]
 public class MeleeEnemy : EnemyAI
 {
-    public override int ChooseAction(EntityBattleData[] battleData, EntityBattleData currentEntityBattleData)
+    public override int ChooseAction(EntityBattleData currentEntityBattleData)
     {
         Debug.Log("Enemy preforming action");
         Entity entity = currentEntityBattleData.EntityManager.Entity;
         return Random.Range(0, entity.Actions.Length);
     }
 
-    public override Vector2Int[] ChooseMovement(EntityBattleData[] battleData, EntityBattleData currentEntityBattleData)
+    public override Vector2Int[] ChooseMovement(EntityBattleData currentEntityBattleData)
     {
         Debug.Log("Enemy moving");
         float distance = 0;
         EntityBattleData closestEnemy = null;
-        foreach (EntityBattleData currentData in battleData)
+        foreach (EntityBattleData currentData in BattleManager.BattleDataManager.GetList)
         {
             if (currentData.EntityManager.Entity.EnemyAI) continue;
             float newDistance = Vector2.Distance(currentData.Position, currentEntityBattleData.Position);

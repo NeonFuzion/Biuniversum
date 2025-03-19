@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using TMPro;
 using Unity.Collections;
 using UnityEngine;
@@ -25,7 +27,7 @@ public class BattleManager : MonoBehaviour
 
     void Awake()
     {
-        turnData = new EntityTurnData[battleData.Count];
+        turnData = new EntityTurnData[BattleDataManager.Count];
 
         foreach (EntityBattleData currentBattleData in battleData)
         {
@@ -33,11 +35,12 @@ public class BattleManager : MonoBehaviour
             EntityManager manager = currentBattleData.EntityManager;
             manager.ModelManager.transform.eulerAngles = new Vector3(0, flip ? 180 : 0, 0);
             manager.EntityObject.OnFinishActionState.AddListener(IncrementCycle);
-            manager.EntityObject.Initizalize(battleData, currentBattleData);
+            manager.EntityObject.Initizalize(currentBattleData);
             manager.Initialize();
+            BattleDataManager.AddEntityPosition(currentBattleData);
         }
 
-        SortEntitiesBySpeed();
+        BattleDataManager.SortBySpeed();
         actionIndex = 0;
         entityIndex = 0;
         actionSelectable = false;
@@ -59,15 +62,15 @@ public class BattleManager : MonoBehaviour
 
     void SetNextControllableCharacter()
     {
-        if (entityIndex >= battleData.Count) return;
+        if (entityIndex >= BattleDataManager.Count) return;
         while (true)
         {
-            Entity currentEntity = battleData[entityIndex].EntityManager.Entity;
+            Entity currentEntity = BattleDataManager.GetData(entityIndex).EntityManager.Entity;
 
             if (!currentEntity.EnemyAI) break;
             entityIndex++;
 
-            if (entityIndex < battleData.Count) continue;
+            if (entityIndex < BattleDataManager.Count) continue;
             EndSelection();
             break;
         }
@@ -97,9 +100,9 @@ public class BattleManager : MonoBehaviour
         actionSelectable = true;
         cyclingTurn = false;
         endMovmentButton.SetActive(true);
-        maxSteps = battleData[entityIndex].EntityManager.Entity.MoveTiles;
+        maxSteps = BattleDataManager.GetData(entityIndex).EntityManager.Entity.MoveTiles;
         currentMovement = new Vector2Int[maxSteps];
-        battleData[entityIndex].EntityManager.ActionVisual.SetMovement();
+        BattleDataManager.GetData(entityIndex).EntityManager.ActionVisual.SetMovement();
     }
 
     void CheckPath()
@@ -108,34 +111,6 @@ public class BattleManager : MonoBehaviour
         foreach (Vector2Int position in currentMovement)
         {
 
-        }
-    }
-
-    void SortEntitiesBySpeed()
-    {
-        for (int i = battleData.Count; i > 0; i--)
-        {
-            float maxSpeed = int.MinValue;
-            int index = 0;
-            for (int j = 0; j < i; j++)
-            {
-                Entity entity = battleData[j].EntityManager.Entity;
-                if (entity.Speed < maxSpeed) continue;
-                index = j;
-                maxSpeed = entity.Speed;
-            }
-
-            List<EntityBattleData> sameSpeedEntities = new List<EntityBattleData>();
-            for (int j = 0; j < i; j++)
-            {
-                EntityBattleData currentBattleData = battleData[j];
-                if (currentBattleData.EntityManager.Entity.Speed != maxSpeed) continue;
-                sameSpeedEntities.Add(currentBattleData);
-            }
-
-            EntityBattleData shiftData = sameSpeedEntities[index];
-            sameSpeedEntities.RemoveAt(index);
-            sameSpeedEntities.Add(shiftData);
         }
     }
 
@@ -152,13 +127,13 @@ public class BattleManager : MonoBehaviour
         if (Mathf.Abs(movement.x) == Mathf.Abs(movement.y)) return;
         movement += stepCount <= 0 ? new () : currentMovement[stepCount - 1];
 
-        Vector2Int worldPosition = movement + BattleDataManager.GetPositionByIndex(entityIndex);
+        Vector2Int worldPosition = movement + BattleDataManager.GetPosition(entityIndex);
         if (worldPosition.x > eastClamp) return;
         if (worldPosition.x < westClamp) return;
         if (worldPosition.y > northClamp) return;
         if (worldPosition.y < southClamp) return;
 
-        battleData[entityIndex].EntityManager.ActionVisual.AddSteps(EntityObject.TileToWorldPosition(movement));
+        BattleDataManager.GetData(entityIndex).EntityManager.ActionVisual.AddSteps(EntityObject.TileToWorldPosition(movement));
         currentMovement[stepCount] = movement;
         stepCount++;
     }
@@ -186,7 +161,7 @@ public class BattleManager : MonoBehaviour
 
     public void PreformCycle()
     {
-        EntityBattleData currentBattleData = battleData[entityIndex];
+        EntityBattleData currentBattleData = BattleDataManager.GetData(entityIndex);
         EntityTurnData currentTurnData = turnData[entityIndex];
         Vector2Int[] movement = currentTurnData.Movement;
         int actionChoice = currentTurnData.ActionChoice;
@@ -194,8 +169,8 @@ public class BattleManager : MonoBehaviour
         if (currentBattleData.EntityManager.Entity.EnemyAI)
         {
             Entity entity = currentBattleData.EntityManager.Entity;
-            movement = entity.EnemyAI.ChooseMovement(battleData.ToArray(), currentBattleData);
-            actionChoice = entity.EnemyAI.ChooseAction(battleData.ToArray(), currentBattleData);
+            movement = entity.EnemyAI.ChooseMovement(currentBattleData);
+            actionChoice = entity.EnemyAI.ChooseAction(currentBattleData);
         }
 
         switch ((ActionStage)actionIndex)
@@ -224,16 +199,16 @@ public class BattleManager : MonoBehaviour
                 break;
         }
 
-        Debug.Log(entityIndex + " | " + battleData.Count);
-        if (entityIndex >= battleData.Count)
+        Debug.Log(entityIndex + " | " + BattleDataManager.Count);
+        if (entityIndex >= BattleDataManager.Count)
         {
-            SortEntitiesBySpeed();
+            BattleDataManager.SortBySpeed();
             actionIndex = 0;
             entityIndex = 0;
             actionSelectable = true;
             cyclingTurn = false;
             
-            turnData = new EntityTurnData[battleData.Count];
+            turnData = new EntityTurnData[BattleDataManager.Count];
             SetNextControllableCharacter();
             SetupMovement();
         }
@@ -255,8 +230,8 @@ public class BattleManager : MonoBehaviour
         if (!actionSelectable) return;
         actionMenu.SetActive(true);
         endMovmentButton.SetActive(false);
-        EntityObject entityObject = battleData[entityIndex].EntityManager.EntityObject;
-        EntityManager entityManager = battleData[entityIndex].EntityManager;
+        EntityObject entityObject = BattleDataManager.GetData(entityIndex).EntityManager.EntityObject;
+        EntityManager entityManager = BattleDataManager.GetData(entityIndex).EntityManager;
         for (int i = 0; i < actionMenu.transform.childCount; i++)
         {
             GameObject actionButton = actionMenu.transform.GetChild(i).gameObject;
@@ -276,22 +251,22 @@ public class BattleManager : MonoBehaviour
 
     public void ShowEffectedTiles(Action action)
     {
-        battleData[entityIndex].EntityManager.ActionVisual.ShowEffectedTiles(action);
+        BattleDataManager.GetData(entityIndex).EntityManager.ActionVisual.ShowEffectedTiles(action);
     }
 
     public void HideEffectedTiles()
     {
-        battleData[entityIndex].EntityManager.ActionVisual.HideEffectedTiles();
+        BattleDataManager.GetData(entityIndex).EntityManager.ActionVisual.HideEffectedTiles();
     }
 
     public void ShowVisuals(Action action)
     {
-        battleData[entityIndex].EntityManager.ActionVisual.ShowVisuals(action);
+        BattleDataManager.GetData(entityIndex).EntityManager.ActionVisual.ShowVisuals(action);
     }
 
     public void HideVisuals()
     {
-        battleData[entityIndex].EntityManager.ActionVisual.HideVisuals();
+        BattleDataManager.GetData(entityIndex).EntityManager.ActionVisual.HideVisuals();
     }
 }
 
@@ -334,26 +309,32 @@ public class EntityBattleData
 
 public class BattleDataManager
 {
-    List<EntityBattleData> battleData;
+    List<EntityBattleData> battleDataManager;
 
-    public BattleDataManager(List<EntityBattleData> battleData)
+    public BattleDataManager(List<EntityBattleData> battleDataManager)
     {
-        this.battleData = new ();
-        foreach (EntityBattleData data in battleData)
+        this.battleDataManager = new ();
+        foreach (EntityBattleData data in battleDataManager)
         {
             Vector3 entityPosition = data.EntityManager.transform.position;
             data.Position = EntityObject.WorldToTilePosition(entityPosition);
-            this.battleData.Add(data);
+            this.battleDataManager.Add(data);
         }
     }
 
-    public Vector2Int GetPositionByIndex(int index) => battleData[index].Position;
+    public ReadOnlyCollection<EntityBattleData> GetList => battleDataManager.AsReadOnly();
 
-    public void AddEntityPosition(EntityBattleData data) => battleData.Add(data);
+    public int Count => battleDataManager.Count;
+
+    public Vector2Int GetPosition(int index) => battleDataManager[index].Position;
+
+    public EntityBattleData GetData(int index) => battleDataManager[index];
+
+    public void AddEntityPosition(EntityBattleData data) => battleDataManager.Add(data);
 
     public void UpdatePosition(EntityManager entityManager, Vector2Int position)
     {
-        foreach (EntityBattleData data in battleData)
+        foreach (EntityBattleData data in battleDataManager)
         {
             if (data.EntityManager != entityManager) continue;
             data.Position = position;
@@ -363,36 +344,18 @@ public class BattleDataManager
 
     public void SortBySpeed()
     {
-        List<EntityBattleData> dataCopy = battleData.Select(data => data).ToList();
+        List<EntityBattleData> dataCopy = battleDataManager.Select(data => data).ToList();
 
-        battleData.Clear();
+        battleDataManager.Clear();
         System.Random random = new ();
-        while (dataCopy.Count > 0)
+        int lastMaxSpeed = int.MaxValue;
+        while (battleDataManager.Count < dataCopy.Count)
         {
-            int maxSpeed = (int)dataCopy.Max(data => data.EntityManager.Entity.Speed);
+            int maxSpeed = (int)dataCopy.Max(data => data.EntityManager.Entity.Speed * (data.EntityManager.Entity.Speed > lastMaxSpeed ? 0 : 1));
             var fastest = dataCopy.Where(data => (int)data.EntityManager.Entity.Speed == maxSpeed);
-            battleData.AddRange(fastest);
+            lastMaxSpeed = maxSpeed;
+            battleDataManager.AddRange(fastest);
         }
-        /*
-        List<EntityBattleData> fastest = new ();
-        battleData.Clear();
-        while (dataCopy.Count > 0)
-        {
-            int maxSpeed = dataCopy.Max(x => (int)x.EntityManager.Entity.Speed);
-            for (int i = 0; i < dataCopy.Count; i++)
-            {
-                EntityBattleData data = dataCopy[i];
-                if (data.EntityManager.Entity.Speed != maxSpeed) continue;
-                fastest.Add(data);
-                dataCopy.RemoveAt(i--);
-            }
-            while (fastest.Count > 0)
-            {
-                int rand = UnityEngine.Random.Range(0, fastest.Count);
-                battleData.Add(fastest[rand]);
-                fastest.RemoveAt(rand);
-            }
-        }*/
     }
 }
 

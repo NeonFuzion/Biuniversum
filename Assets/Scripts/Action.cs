@@ -14,5 +14,5 @@ public abstract class Action : ScriptableObject
 
     public Vector2[] EffectTiles { get => effectTiles; }
 
-    public abstract void PreformAction(List<EntityBattleData> entityBattleData, EntityBattleData currentEntityBattleData, int actionStage);
+    public abstract void PreformAction(EntityBattleData currentEntityBattleData, int actionStage);
 }
