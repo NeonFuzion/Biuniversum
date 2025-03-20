@@ -3621,16 +3621,16 @@ MonoBehaviour:
         m_CallState: 2
   battleData:
   - entityManager: {fileID: 778625245}
-    arenaSide: 0
+    arenaSide: 1
     position: {x: 0, y: 0}
   - entityManager: {fileID: 555779057}
-    arenaSide: 0
+    arenaSide: 1
     position: {x: 0, y: 0}
   - entityManager: {fileID: 2123937112}
-    arenaSide: 0
+    arenaSide: 1
     position: {x: 0, y: 0}
   - entityManager: {fileID: 255322616}
-    arenaSide: 0
+    arenaSide: 1
     position: {x: 0, y: 0}
   - entityManager: {fileID: 1021333996}
     arenaSide: 0

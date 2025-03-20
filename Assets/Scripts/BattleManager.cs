@@ -2,9 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using TMPro;
-using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
@@ -27,7 +25,8 @@ public class BattleManager : MonoBehaviour
 
     void Awake()
     {
-        turnData = new EntityTurnData[BattleDataManager.Count];
+        turnData = new EntityTurnData[battleData.Count];
+        BattleDataManager = new ();
 
         foreach (EntityBattleData currentBattleData in battleData)
         {
@@ -37,8 +36,8 @@ public class BattleManager : MonoBehaviour
             manager.EntityObject.OnFinishActionState.AddListener(IncrementCycle);
             manager.EntityObject.Initizalize(currentBattleData);
             manager.Initialize();
-            BattleDataManager.AddEntityPosition(currentBattleData);
         }
+        BattleDataManager = new (battleData);
 
         BattleDataManager.SortBySpeed();
         actionIndex = 0;
@@ -62,17 +61,19 @@ public class BattleManager : MonoBehaviour
 
     void SetNextControllableCharacter()
     {
-        if (entityIndex >= BattleDataManager.Count) return;
         while (true)
         {
-            Entity currentEntity = BattleDataManager.GetData(entityIndex).EntityManager.Entity;
-
-            if (!currentEntity.EnemyAI) break;
-            entityIndex++;
-
-            if (entityIndex < BattleDataManager.Count) continue;
-            EndSelection();
-            break;
+            if (entityIndex >= BattleDataManager.Count)
+            {
+                EndSelection();
+                break;
+            }
+            else
+            {
+                EnemyAI script = BattleDataManager.GetData(entityIndex).EntityManager.Entity.EnemyAI;
+                if (script != null) break;
+                entityIndex++;
+            }
         }
     }
 
@@ -311,9 +312,11 @@ public class BattleDataManager
 {
     List<EntityBattleData> battleDataManager;
 
-    public BattleDataManager(List<EntityBattleData> battleDataManager)
+    public BattleDataManager(List<EntityBattleData> battleDataManager = null)
     {
         this.battleDataManager = new ();
+
+        if (battleDataManager == null) return;
         foreach (EntityBattleData data in battleDataManager)
         {
             Vector3 entityPosition = data.EntityManager.transform.position;
@@ -344,18 +347,19 @@ public class BattleDataManager
 
     public void SortBySpeed()
     {
-        List<EntityBattleData> dataCopy = battleDataManager.Select(data => data).ToList();
+        List<EntityBattleData> output = new ();
 
-        battleDataManager.Clear();
         System.Random random = new ();
         int lastMaxSpeed = int.MaxValue;
-        while (battleDataManager.Count < dataCopy.Count)
+        while (output.Count < battleDataManager.Count)
         {
-            int maxSpeed = (int)dataCopy.Max(data => data.EntityManager.Entity.Speed * (data.EntityManager.Entity.Speed > lastMaxSpeed ? 0 : 1));
-            var fastest = dataCopy.Where(data => (int)data.EntityManager.Entity.Speed == maxSpeed);
+            int maxSpeed = (int)battleDataManager.Max(data => data.EntityManager.Entity.Speed * (data.EntityManager.Entity.Speed >= lastMaxSpeed ? 0 : 1));
+            var fastest = battleDataManager.Where(data => (int)data.EntityManager.Entity.Speed == maxSpeed);
             lastMaxSpeed = maxSpeed;
-            battleDataManager.AddRange(fastest);
+            output.AddRange(fastest);
         }
+        battleDataManager = output;
+        Debug.Log(string.Join(", ", battleDataManager.Select(x => x.EntityManager.gameObject.name)));
     }
 }
 

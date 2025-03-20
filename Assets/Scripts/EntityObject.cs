@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.Experimental.AI;
 using UnityEngine.InputSystem;
 
 public class EntityObject : MonoBehaviour
@@ -35,6 +34,7 @@ public class EntityObject : MonoBehaviour
         switch (state)
         {
             case EntityState.Moving:
+                if (movePositions.Count == 0) break;
                 speedCurveTime += Time.deltaTime * moveSpeed;
                 transform.position = startPostion + speedCurve.Evaluate(speedCurveTime) * targetVector;
 
@@ -42,10 +42,15 @@ public class EntityObject : MonoBehaviour
                 movePositions.RemoveAt(0);
                 speedCurveTime = 0;
 
-                if (movePositions.Count == 0) break;
-                startPostion = transform.position;
-                targetVector = movePositions[0] - transform.position;
-                FinishMovement();
+                if (movePositions.Count == 0)
+                {
+                    FinishMovement();
+                }
+                else
+                {
+                    startPostion = transform.position;
+                    targetVector = movePositions[0] - transform.position;
+                }
                 break;
         }
     }
@@ -115,7 +120,7 @@ public class EntityObject : MonoBehaviour
         }
     }
 
-    public static Vector3 TileToWorldPosition(Vector2Int vector) => new Vector3(vector.x, 0, vector.x);
+    public static Vector3 TileToWorldPosition(Vector2Int vector) => new Vector3(vector.x, 0, vector.y);
     public static Vector2Int WorldToTilePosition(Vector3 vector) => new Vector2Int(Mathf.RoundToInt(vector.x), Mathf.RoundToInt(vector.y));
 }
 
