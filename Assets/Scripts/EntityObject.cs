@@ -36,6 +36,7 @@ public class EntityObject : MonoBehaviour
             case EntityState.Moving:
                 if (movePositions.Count == 0) break;
                 speedCurveTime += Time.deltaTime * moveSpeed;
+                Debug.Log(speedCurveTime);
                 transform.position = startPostion + speedCurve.Evaluate(speedCurveTime) * targetVector;
 
                 if (speedCurveTime < 1) break;
@@ -101,7 +102,7 @@ public class EntityObject : MonoBehaviour
             {
                 Vector3 currentPosition = battleData.EntityManager.transform.position;
                 currentPosition = new (currentPosition.x, 0, currentPosition.z);
-                Debug.Log(newPosition + " | " + currentPosition);
+                //Debug.Log(newPosition + " | " + currentPosition);
                 
                 if (Vector3.Distance(newPosition, currentPosition) < 0.1f) return;
             }
@@ -112,7 +113,7 @@ public class EntityObject : MonoBehaviour
         if (movePositions.Count > 0)
         {
             targetVector = movePositions[0] - transform.position;
-            Debug.Log(string.Join(", ", movement));
+            //Debug.Log(string.Join(", ", movement));
         }
         else
         {

@@ -71,7 +71,7 @@ public class BattleManager : MonoBehaviour
             else
             {
                 EnemyAI script = BattleDataManager.GetData(entityIndex).EntityManager.Entity.EnemyAI;
-                if (script != null) break;
+                if (script == null) break;
                 entityIndex++;
             }
         }
@@ -173,6 +173,7 @@ public class BattleManager : MonoBehaviour
             movement = entity.EnemyAI.ChooseMovement(currentBattleData);
             actionChoice = entity.EnemyAI.ChooseAction(currentBattleData);
         }
+        //Debug.Log(currentBattleData.EntityManager.Entity.Name + " (" + actionIndex + ") " + ":" + movement.Length);
 
         switch ((ActionStage)actionIndex)
         {
