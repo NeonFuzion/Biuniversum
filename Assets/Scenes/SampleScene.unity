@@ -3430,6 +3430,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2081838844}
   - component: {fileID: 2081838846}
+  - component: {fileID: 2081838847}
   - component: {fileID: 2081838845}
   m_Layer: 0
   m_Name: BattleManager
@@ -3644,6 +3645,18 @@ MonoBehaviour:
   - entityManager: {fileID: 614151254}
     arenaSide: 0
     position: {x: 0, y: 0}
+--- !u!114 &2081838847
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2081838843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b6dafeb2916e9c44797c5aeb9d8d62ad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &2123937112 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6125271941998731062, guid: f70eca6105c2f1d4aa3c218bc6e98877, type: 3}

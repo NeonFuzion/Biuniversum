@@ -1,0 +1,82 @@
+using System.Collections.Generic;
+using System.Linq;
+using Unity.VisualScripting;
+using UnityEngine;
+
+public class BattleData : MonoBehaviour
+{
+    static BattleData instance;
+    public static BattleData Instance { get => instance; }
+
+    static int northClamp, eastClamp, southClamp, westClamp;
+
+    static List<EntityBattleData> battleData;
+
+    public static IList<EntityBattleData> GetList { get => battleData.AsReadOnlyList(); }
+
+    private void Awake()
+    {
+        if (instance != null && instance != this)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+            instance = this;
+            battleData = new ();
+        }
+    }
+
+    static public void AddBattleData(EntityBattleData data)
+    {
+        if (battleData.Contains(data)) return;
+        battleData.Add(data);
+    }
+
+    static public void AddBattleData(List<EntityBattleData> data)
+    {
+        foreach (EntityBattleData dataItem in data)
+        {
+            if (battleData.Contains(dataItem)) continue;
+            battleData.Add(dataItem);
+        }
+    }
+
+    static public void UpdatePosition(int index, Vector2Int position)
+    {
+        if (index >= battleData.Count) return;
+        battleData[index].Position = position;
+    }
+
+    static public void UpdatePosition(int index, Vector2Int[] positions)
+    {
+        foreach (Vector2Int step in positions) UpdatePosition(index, step);
+    }
+
+    static public void SortBySpeed()
+    {
+        List<EntityBattleData> output = new ();
+
+        System.Random random = new ();
+        int lastMaxSpeed = int.MaxValue;
+        while (output.Count < battleData.Count)
+        {
+            int maxSpeed = (int)battleData.Max(data => data.EntityManager.Entity.Speed * (data.EntityManager.Entity.Speed >= lastMaxSpeed ? 0 : 1));
+            var fastest = battleData.Where(data => (int)data.EntityManager.Entity.Speed == maxSpeed);
+            lastMaxSpeed = maxSpeed;
+            output.AddRange(fastest);
+        }
+        battleData = output;
+        Debug.Log(string.Join(", ", battleData.Select(x => x.EntityManager.gameObject.name)));
+    }
+
+    public static bool IsPositionEmpty(Vector2Int position)
+    {
+        if (position.x > eastClamp) return false;
+        if (position.x < westClamp) return false;
+        if (position.y > northClamp) return false;
+        if (position.y < southClamp) return false;
+        if (battleData.Select(data => data.Position).Contains(position)) return false;
+        return true;
+    }
+}

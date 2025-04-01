@@ -36,7 +36,7 @@ public class EntityObject : MonoBehaviour
             case EntityState.Moving:
                 if (movePositions.Count == 0) break;
                 speedCurveTime += Time.deltaTime * moveSpeed;
-                Debug.Log(speedCurveTime);
+                //Debug.Log(speedCurveTime);
                 transform.position = startPostion + speedCurve.Evaluate(speedCurveTime) * targetVector;
 
                 if (speedCurveTime < 1) break;
@@ -90,26 +90,9 @@ public class EntityObject : MonoBehaviour
     {
         Debug.Log("Moving");
         state = EntityState.Moving;
-        movePositions = new List<Vector3>();
+        movePositions = movement.Select(position => position + transform.position).ToList();
         speedCurveTime = 0;
         startPostion = transform.position;
-        for (int i = 0; i < movement.Length; i++)
-        {
-            Vector3 newPosition = transform.position + movement[i];
-            newPosition = new Vector3(newPosition.x, 0, newPosition.z);
-
-            foreach (EntityBattleData battleData in BattleManager.BattleDataManager.GetList)
-            {
-                Vector3 currentPosition = battleData.EntityManager.transform.position;
-                currentPosition = new (currentPosition.x, 0, currentPosition.z);
-                //Debug.Log(newPosition + " | " + currentPosition);
-                
-                if (Vector3.Distance(newPosition, currentPosition) < 0.1f) return;
-            }
-
-            movePositions.Add(newPosition);
-        }
-
         if (movePositions.Count > 0)
         {
             targetVector = movePositions[0] - transform.position;

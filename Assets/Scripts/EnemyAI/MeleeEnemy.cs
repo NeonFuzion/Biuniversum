@@ -16,7 +16,7 @@ public class MeleeEnemy : EnemyAI
         Debug.Log("Enemy moving");
         float distance = 0;
         EntityBattleData closestEnemy = null;
-        foreach (EntityBattleData currentData in BattleManager.BattleDataManager.GetList)
+        foreach (EntityBattleData currentData in BattleData.GetList)
         {
             if (currentData.EntityManager.Entity.EnemyAI) continue;
             float newDistance = Vector2.Distance(currentData.Position, currentEntityBattleData.Position);
