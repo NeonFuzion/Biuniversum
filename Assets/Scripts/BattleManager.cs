@@ -20,6 +20,7 @@ public class BattleManager : MonoBehaviour
     void Awake()
     {
         turnData = new EntityTurnData[battleData.Count];
+        BattleData.Initialize();
 
         foreach (EntityBattleData currentBattleData in battleData)
         {
@@ -28,6 +29,7 @@ public class BattleManager : MonoBehaviour
             manager.ModelManager.transform.eulerAngles = new Vector3(0, flip ? 180 : 0, 0);
             manager.EntityObject.OnFinishActionState.AddListener(IncrementCycle);
             manager.EntityObject.Initizalize(currentBattleData);
+            manager.EntityObject.transform.position = new (currentBattleData.Position.x, manager.EntityObject.transform.position.y, currentBattleData.Position.y);
             manager.Initialize();
             BattleData.AddBattleData(currentBattleData);
         }
@@ -107,9 +109,8 @@ public class BattleManager : MonoBehaviour
             currentPosition += movement[i];
             Debug.Log(currentPosition);
 
-            if (BattleData.IsPositionEmpty(currentPosition)) continue;
-            List<Vector2Int> transfer = movement.ToList();
-            transfer.RemoveRange(i, movement.Length - i);
+            if (BattleData.IsPositionValid(currentPosition)) continue;
+            List<Vector2Int> transfer = movement.ToList().GetRange(0, i);
             Debug.Log("Cutting path");
             return transfer.ToArray();
         }
@@ -130,7 +131,8 @@ public class BattleManager : MonoBehaviour
         movement += stepCount <= 0 ? new () : currentMovement[stepCount - 1];
 
         Vector2Int worldPosition = movement + BattleData.GetList[entityIndex].Position;
-        if (!BattleData.IsPositionEmpty(worldPosition)) return;
+        Debug.Log(worldPosition);
+        if (!BattleData.IsPositionClamped(worldPosition)) return;
 
         BattleData.GetList[entityIndex].EntityManager.ActionVisual.AddSteps(EntityObject.TileToWorldPosition(movement));
         currentMovement[stepCount] = movement;
@@ -139,7 +141,9 @@ public class BattleManager : MonoBehaviour
 
     public void ActionInput(int actionChoice)
     {
+        Debug.Log(string.Join(", ", currentMovement));
         Vector2Int[] checkedPath = CheckPath(currentMovement);
+        Debug.Log(string.Join(", ", checkedPath));
         BattleData.UpdatePosition(entityIndex, checkedPath);
         EntityTurnData currentTurnData = new EntityTurnData(actionChoice, checkedPath);
         turnData[entityIndex] = currentTurnData;

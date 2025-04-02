@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -23,8 +24,16 @@ public class BattleData : MonoBehaviour
         else
         {
             instance = this;
-            battleData = new ();
         }
+    }
+
+    public static void Initialize()
+    {
+        battleData = new ();
+        northClamp = 3;
+        eastClamp = 2;
+        southClamp = -3;
+        westClamp = -2;
     }
 
     static public void AddBattleData(EntityBattleData data)
@@ -72,11 +81,20 @@ public class BattleData : MonoBehaviour
 
     public static bool IsPositionEmpty(Vector2Int position)
     {
+        return !battleData.Select(data => data.Position).Contains(position);
+    }
+
+    public static bool IsPositionClamped(Vector2Int position)
+    {
         if (position.x > eastClamp) return false;
         if (position.x < westClamp) return false;
         if (position.y > northClamp) return false;
         if (position.y < southClamp) return false;
-        if (battleData.Select(data => data.Position).Contains(position)) return false;
         return true;
+    }
+
+    public static bool IsPositionValid(Vector2Int position)
+    {
+        return IsPositionClamped(position) && IsPositionEmpty(position);
     }
 }

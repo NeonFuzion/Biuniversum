@@ -3596,10 +3596,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b37ff745ca9fe4b4e8e0e851726359de, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  northClamp: 3
-  eastClamp: 2
-  southClamp: -3
-  westClamp: -2
   actionMenu: {fileID: 1290408517}
   endMovmentButton: {fileID: 312084078}
   onContinue:
@@ -3623,28 +3619,28 @@ MonoBehaviour:
   battleData:
   - entityManager: {fileID: 778625245}
     arenaSide: 1
-    position: {x: 0, y: 0}
+    position: {x: -2, y: -3}
   - entityManager: {fileID: 555779057}
     arenaSide: 1
-    position: {x: 0, y: 0}
+    position: {x: -1, y: -3}
   - entityManager: {fileID: 2123937112}
     arenaSide: 1
-    position: {x: 0, y: 0}
+    position: {x: 1, y: -3}
   - entityManager: {fileID: 255322616}
     arenaSide: 1
-    position: {x: 0, y: 0}
+    position: {x: 2, y: -3}
   - entityManager: {fileID: 1021333996}
     arenaSide: 0
-    position: {x: 0, y: 0}
+    position: {x: -2, y: 3}
   - entityManager: {fileID: 984610213}
     arenaSide: 0
-    position: {x: 0, y: 0}
+    position: {x: -1, y: 3}
   - entityManager: {fileID: 367149045}
     arenaSide: 0
-    position: {x: 0, y: 0}
+    position: {x: 1, y: 3}
   - entityManager: {fileID: 614151254}
     arenaSide: 0
-    position: {x: 0, y: 0}
+    position: {x: 2, y: 3}
 --- !u!114 &2081838847
 MonoBehaviour:
   m_ObjectHideFlags: 0
