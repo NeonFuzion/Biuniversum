@@ -54,12 +54,12 @@ public class BattleData : MonoBehaviour
     static public void UpdatePosition(int index, Vector2Int position)
     {
         if (index >= battleData.Count) return;
-        battleData[index].Position = position;
+        battleData[index].Position += position;
     }
 
     static public void UpdatePosition(int index, Vector2Int[] positions)
     {
-        foreach (Vector2Int step in positions) UpdatePosition(index, step);
+        UpdatePosition(index, positions[positions.Length - 1]);
     }
 
     static public void SortBySpeed()

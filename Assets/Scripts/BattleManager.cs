@@ -12,14 +12,15 @@ public class BattleManager : MonoBehaviour
     [SerializeField] List<EntityBattleData> battleData;
     
     EntityTurnData[] turnData;
-    Vector2Int[] currentMovement;
+    List<Vector2Int> currentMovement;
 
-    int entityIndex, actionIndex, maxSteps, stepCount;
+    int entityIndex, actionIndex, maxSteps;
     bool actionSelectable, cyclingTurn;
 
     void Awake()
     {
         turnData = new EntityTurnData[battleData.Count];
+        currentMovement = new();
         BattleData.Initialize();
 
         foreach (EntityBattleData currentBattleData in battleData)
@@ -92,12 +93,11 @@ public class BattleManager : MonoBehaviour
     {
         if (cyclingTurn) return;
         Debug.Log("Setting up movement");
-        stepCount = 0;
         actionSelectable = true;
         cyclingTurn = false;
         endMovmentButton.SetActive(true);
+        currentMovement.Clear();
         maxSteps = BattleData.GetList[entityIndex].EntityManager.Entity.MoveTiles;
-        currentMovement = new Vector2Int[maxSteps];
         BattleData.GetList[entityIndex].EntityManager.ActionVisual.SetMovement();
     }
 
@@ -121,29 +121,28 @@ public class BattleManager : MonoBehaviour
     {
         if (!context.performed) return;
         if (actionIndex != 0) return;
-        if (stepCount >= maxSteps) return;
+        if (currentMovement.Count > maxSteps) return;
         if (cyclingTurn) return;
         Debug.Log("Selecting path");
         Vector2 input = context.action.ReadValue<Vector2>();
         Vector2Int movement = new (Mathf.RoundToInt(input.x), Mathf.RoundToInt(input.y));
 
         if (Mathf.Abs(movement.x) == Mathf.Abs(movement.y)) return;
-        movement += stepCount <= 0 ? new () : currentMovement[stepCount - 1];
+        if (currentMovement.Count > 1) movement += currentMovement[currentMovement.Count - 1];
 
         Vector2Int worldPosition = movement + BattleData.GetList[entityIndex].Position;
         Debug.Log(worldPosition);
         if (!BattleData.IsPositionClamped(worldPosition)) return;
 
         BattleData.GetList[entityIndex].EntityManager.ActionVisual.AddSteps(EntityObject.TileToWorldPosition(movement));
-        currentMovement[stepCount] = movement;
-        stepCount++;
+        currentMovement.Add(movement);
     }
 
     public void ActionInput(int actionChoice)
     {
-        Debug.Log(string.Join(", ", currentMovement));
-        Vector2Int[] checkedPath = CheckPath(currentMovement);
-        Debug.Log(string.Join(", ", checkedPath));
+        Debug.Log("Raw: " + string.Join(", ", currentMovement));
+        Vector2Int[] checkedPath = CheckPath(currentMovement.ToArray());
+        Debug.Log("Filtered: " + string.Join(", ", checkedPath));
         BattleData.UpdatePosition(entityIndex, checkedPath);
         EntityTurnData currentTurnData = new EntityTurnData(actionChoice, checkedPath);
         turnData[entityIndex] = currentTurnData;
