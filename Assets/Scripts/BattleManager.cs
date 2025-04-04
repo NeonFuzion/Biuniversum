@@ -121,16 +121,17 @@ public class BattleManager : MonoBehaviour
     {
         if (!context.performed) return;
         if (actionIndex != 0) return;
-        if (currentMovement.Count > maxSteps) return;
+        if (currentMovement.Count >= maxSteps) return;
         if (cyclingTurn) return;
         Debug.Log("Selecting path");
         Vector2 input = context.action.ReadValue<Vector2>();
         Vector2Int movement = new (Mathf.RoundToInt(input.x), Mathf.RoundToInt(input.y));
 
         if (Mathf.Abs(movement.x) == Mathf.Abs(movement.y)) return;
-        if (currentMovement.Count > 1) movement += currentMovement[currentMovement.Count - 1];
+        if (currentMovement.Count > 0) movement += currentMovement[currentMovement.Count - 1];
 
         Vector2Int worldPosition = movement + BattleData.GetList[entityIndex].Position;
+        if (currentMovement.Count > 0) worldPosition += currentMovement[currentMovement.Count - 1];
         Debug.Log(worldPosition);
         if (!BattleData.IsPositionClamped(worldPosition)) return;
 
@@ -173,7 +174,7 @@ public class BattleManager : MonoBehaviour
         if (currentBattleData.EntityManager.Entity.EnemyAI)
         {
             Entity entity = currentBattleData.EntityManager.Entity;
-            movement = entity.EnemyAI.ChooseMovement(currentBattleData);
+            movement = CheckPath(entity.EnemyAI.ChooseMovement(currentBattleData));
             actionChoice = entity.EnemyAI.ChooseAction(currentBattleData);
         }
         //Debug.Log(currentBattleData.EntityManager.Entity.Name + " (" + actionIndex + ") " + ":" + movement.Length);
