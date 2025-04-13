@@ -14,8 +14,9 @@ public class BattleManager : MonoBehaviour
     
     EntityTurnData[] turnData;
     List<Vector2Int> currentMovement;
+    int[] turnOrder;
 
-    int entityIndex, actionIndex, maxSteps;
+    int entityIndex, actionIndex, maxSteps, speedIndex;
     bool actionSelectable, cyclingTurn;
 
     void Awake()
@@ -36,7 +37,6 @@ public class BattleManager : MonoBehaviour
             BattleData.AddBattleData(currentBattleData);
         }
 
-        BattleData.SortBySpeed();
         actionIndex = 0;
         entityIndex = 0;
         actionSelectable = false;
@@ -87,6 +87,7 @@ public class BattleManager : MonoBehaviour
             turnData[i] = new EntityTurnData(-1, new Vector2Int[] {});
         }
         cyclingTurn = true;
+        turnOrder = BattleData.GetSpeedBracket();
         PreformCycle();
     }
 
@@ -105,7 +106,7 @@ public class BattleManager : MonoBehaviour
     Vector2Int[] CheckPath(Vector2Int[] movement)
     {
         Debug.Log("Raw: " + string.Join(", ", movement));
-        Vector2Int currentPosition = BattleData.GetList[entityIndex].Position;
+        Vector2Int currentPosition = BattleData.GetList[speedIndex].Position;
         for (int i = 0; i < movement.Length; i++)
         {
             Vector2Int newPosition = currentPosition + movement[i];
@@ -179,7 +180,8 @@ public class BattleManager : MonoBehaviour
 
     public void PreformCycle()
     {
-        EntityBattleData currentBattleData = BattleData.GetList[entityIndex];
+        speedIndex = turnOrder[entityIndex];
+        EntityBattleData currentBattleData = BattleData.GetList[speedIndex];
 
         if (!currentBattleData.EntityManager.gameObject.activeInHierarchy)
         {
@@ -187,7 +189,7 @@ public class BattleManager : MonoBehaviour
             IncrementCycle();
             return;
         }
-        EntityTurnData currentTurnData = turnData[entityIndex];
+        EntityTurnData currentTurnData = turnData[speedIndex];
         int actionChoice = currentTurnData.ActionChoice;
         Vector2Int[] movement = currentTurnData.Movement;
         if (actionChoice == -1)
@@ -209,7 +211,7 @@ public class BattleManager : MonoBehaviour
                     break;
                 }
                 Debug.Log("Premove" + entityIndex + ": " + string.Join(", ", BattleData.GetList.Select(data => data.Position)));
-                BattleData.UpdatePosition(entityIndex, checkedPath);
+                BattleData.UpdatePosition(speedIndex, checkedPath);
                 Debug.Log("Postmove" + entityIndex + ": " + string.Join(", ", BattleData.GetList.Select(data => data.Position)));
 
                 currentBattleData.EntityManager.EntityObject.PerformMovement(checkedPath.Select(x => EntityObject.TileToWorldPosition(x)).ToArray());
@@ -239,7 +241,6 @@ public class BattleManager : MonoBehaviour
         Debug.Log(entityIndex + " | " + BattleData.GetList.Count);
         if (entityIndex >= BattleData.GetList.Count)
         {
-            BattleData.SortBySpeed();
             actionIndex = 0;
             entityIndex = 0;
             actionSelectable = true;
@@ -267,7 +268,6 @@ public class BattleManager : MonoBehaviour
         if (!actionSelectable) return;
         actionMenu.SetActive(true);
         endMovmentButton.SetActive(false);
-        EntityObject entityObject = BattleData.GetList[entityIndex].EntityManager.EntityObject;
         EntityManager entityManager = BattleData.GetList[entityIndex].EntityManager;
         for (int i = 0; i < actionMenu.transform.childCount; i++)
         {

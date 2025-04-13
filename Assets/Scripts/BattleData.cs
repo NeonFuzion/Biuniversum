@@ -63,7 +63,7 @@ public class BattleData : MonoBehaviour
         UpdatePosition(index, positions[positions.Length - 1]);
     }
 
-    static public void SortBySpeed()
+    static public int[] GetSpeedBracket()
     {
         List<EntityBattleData> output = new ();
 
@@ -85,8 +85,9 @@ public class BattleData : MonoBehaviour
 
             output.AddRange(fastest);
         }
-        battleData = output;
-        //Debug.Log(string.Join(", ", battleData.Select(x => x.EntityManager.gameObject.name)));
+        Debug.Log(string.Join(", ", output.Select(x => x.EntityManager.gameObject.name)));
+        Debug.Log(string.Join(", ", output.Select(data => battleData.IndexOf(data))));
+        return output.Select(data => battleData.IndexOf(data)).ToArray();
     }
 
     public static bool IsPositionEmpty(Vector2Int position)
