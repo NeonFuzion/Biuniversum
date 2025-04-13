@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
@@ -103,15 +104,17 @@ public class BattleManager : MonoBehaviour
 
     Vector2Int[] CheckPath(Vector2Int[] movement)
     {
+        Debug.Log("Raw: " + string.Join(", ", movement));
         Vector2Int currentPosition = BattleData.GetList[entityIndex].Position;
         for (int i = 0; i < movement.Length; i++)
         {
-            currentPosition += movement[i];
-            Debug.Log(currentPosition);
+            Vector2Int newPosition = currentPosition + movement[i];
 
-            if (BattleData.IsPositionValid(currentPosition)) continue;
+            //Debug.Log(entityIndex + " | " + newPosition + " | " + string.Join(", ", BattleData.GetList.Select(data => data.Position)));
+            if (BattleData.IsPositionEmpty(newPosition)) continue;
+            Debug.Log("Unfiltered: " + string.Join(", ", movement));
             List<Vector2Int> transfer = movement.ToList().GetRange(0, i);
-            Debug.Log("Cutting path");
+            Debug.Log("Filtered: " + string.Join(", ", transfer));
             return transfer.ToArray();
         }
         return movement;
@@ -135,17 +138,27 @@ public class BattleManager : MonoBehaviour
         Debug.Log(worldPosition);
         if (!BattleData.IsPositionClamped(worldPosition)) return;
 
-        BattleData.GetList[entityIndex].EntityManager.ActionVisual.AddSteps(EntityObject.TileToWorldPosition(movement));
+        if (currentMovement.Contains(worldPosition)) return;
+        ActionVisual visual = BattleData.GetList[entityIndex].EntityManager.ActionVisual;
+        visual.AddSteps(EntityObject.TileToWorldPosition(movement));
         currentMovement.Add(movement);
+    }
+
+    public void RemoveStep(InputAction.CallbackContext context)
+    {
+        if (!context.performed) return;
+        if (actionIndex != 0) return;
+        if (cyclingTurn) return;
+        if (currentMovement.Count == 0) return;
+        Debug.Log("Removing steps");
+        currentMovement.RemoveAt(currentMovement.Count - 1);
+        ActionVisual visual = BattleData.GetList[entityIndex].EntityManager.ActionVisual;
+        visual.RemoveSteps();
     }
 
     public void ActionInput(int actionChoice)
     {
-        Debug.Log("Raw: " + string.Join(", ", currentMovement));
-        Vector2Int[] checkedPath = CheckPath(currentMovement.ToArray());
-        Debug.Log("Filtered: " + string.Join(", ", checkedPath));
-        BattleData.UpdatePosition(entityIndex, checkedPath);
-        EntityTurnData currentTurnData = new EntityTurnData(actionChoice, checkedPath);
+        EntityTurnData currentTurnData = new EntityTurnData(actionChoice, currentMovement.ToArray());
         turnData[entityIndex] = currentTurnData;
         HideVisuals();
         actionIndex = 0;
@@ -167,24 +180,42 @@ public class BattleManager : MonoBehaviour
     public void PreformCycle()
     {
         EntityBattleData currentBattleData = BattleData.GetList[entityIndex];
-        EntityTurnData currentTurnData = turnData[entityIndex];
-        Vector2Int[] movement = currentTurnData.Movement;
-        int actionChoice = currentTurnData.ActionChoice;
 
-        if (currentBattleData.EntityManager.Entity.EnemyAI)
+        if (!currentBattleData.EntityManager.gameObject.activeInHierarchy)
+        {
+            actionIndex = 1;
+            IncrementCycle();
+            return;
+        }
+        EntityTurnData currentTurnData = turnData[entityIndex];
+        int actionChoice = currentTurnData.ActionChoice;
+        Vector2Int[] movement = currentTurnData.Movement;
+        if (actionChoice == -1)
         {
             Entity entity = currentBattleData.EntityManager.Entity;
-            movement = CheckPath(entity.EnemyAI.ChooseMovement(currentBattleData));
             actionChoice = entity.EnemyAI.ChooseAction(currentBattleData);
+            movement = entity.EnemyAI.ChooseMovement(currentBattleData);
         }
         //Debug.Log(currentBattleData.EntityManager.Entity.Name + " (" + actionIndex + ") " + ":" + movement.Length);
 
         switch ((ActionStage)actionIndex)
         {
             case ActionStage.Moving:
-                currentBattleData.EntityManager.EntityObject.PerformMovement(movement.Select(x => EntityObject.TileToWorldPosition(x)).ToArray());
+                Vector2Int[] checkedPath = CheckPath(movement.ToArray());
+                
+                if (checkedPath.Length == 0)
+                {
+                    IncrementCycle();
+                    break;
+                }
+                Debug.Log("Premove" + entityIndex + ": " + string.Join(", ", BattleData.GetList.Select(data => data.Position)));
+                BattleData.UpdatePosition(entityIndex, checkedPath);
+                Debug.Log("Postmove" + entityIndex + ": " + string.Join(", ", BattleData.GetList.Select(data => data.Position)));
+
+                currentBattleData.EntityManager.EntityObject.PerformMovement(checkedPath.Select(x => EntityObject.TileToWorldPosition(x)).ToArray());
                 break;
             case ActionStage.Performing:
+                Debug.Log(actionChoice + " | " + currentBattleData.EntityManager.Entity.Actions.Length);
                 Action action = currentBattleData.EntityManager.Entity.Actions[actionChoice];
                 currentBattleData.EntityManager.EntityObject.PerformAction(action);
                 currentBattleData.EntityManager.EntityAnimationManager.Animate(action);

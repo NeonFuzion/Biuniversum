@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -53,7 +52,9 @@ public class BattleData : MonoBehaviour
 
     static public void UpdatePosition(int index, Vector2Int position)
     {
+        Debug.Log("position index: " + index);
         if (index >= battleData.Count) return;
+        Debug.Log("updating position:");
         battleData[index].Position += position;
     }
 
@@ -66,17 +67,26 @@ public class BattleData : MonoBehaviour
     {
         List<EntityBattleData> output = new ();
 
-        System.Random random = new ();
         int lastMaxSpeed = int.MaxValue;
         while (output.Count < battleData.Count)
         {
             int maxSpeed = (int)battleData.Max(data => data.EntityManager.Entity.Speed * (data.EntityManager.Entity.Speed >= lastMaxSpeed ? 0 : 1));
-            var fastest = battleData.Where(data => (int)data.EntityManager.Entity.Speed == maxSpeed);
+            var fastest = battleData.Where(data => (int)data.EntityManager.Entity.Speed == maxSpeed).ToList();
             lastMaxSpeed = maxSpeed;
+
+            var count = fastest.Count();
+            var last = count - 1;
+            for (var i = 0; i < last; ++i) {
+                var r = Random.Range(i, count);
+                var tmp = fastest[i];
+                fastest[i] = fastest[r];
+                fastest[r] = tmp;
+            }
+
             output.AddRange(fastest);
         }
         battleData = output;
-        Debug.Log(string.Join(", ", battleData.Select(x => x.EntityManager.gameObject.name)));
+        //Debug.Log(string.Join(", ", battleData.Select(x => x.EntityManager.gameObject.name)));
     }
 
     public static bool IsPositionEmpty(Vector2Int position)

@@ -39,6 +39,12 @@ public class ActionVisual : MonoBehaviour
         lineRenderer.SetPosition(lastIndex, movement);
     }
 
+    public void RemoveSteps()
+    {
+        Debug.Log("Removing steps");
+        lineRenderer.positionCount--;
+    }
+
     public void ShowEffectedTiles(Action action)
     {
         tileManager.localPosition = lineRenderer.GetPosition(lineRenderer.positionCount - 1);

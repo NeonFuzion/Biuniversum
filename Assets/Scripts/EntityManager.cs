@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 
 public class EntityManager : MonoBehaviour
@@ -31,5 +32,13 @@ public class EntityManager : MonoBehaviour
     {
         health.Initialize((int)entity.Health);
         actionVisual.Initialize();
+    }
+
+    public void KillEntity()
+    {
+        int index = BattleData.GetList.Select(data => data.EntityManager).ToList().IndexOf(this);
+        EntityBattleData data = BattleData.GetList[index];
+        data.EntityManager.gameObject.SetActive(false);
+        BattleData.UpdatePosition(index, new Vector2Int(8, 8));
     }
 }

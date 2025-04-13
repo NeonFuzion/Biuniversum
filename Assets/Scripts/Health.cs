@@ -30,12 +30,10 @@ public class Health : MonoBehaviour
         onDeath?.Invoke();
     }
 
-    public void Initialize(int maxHealth, int health = -1)
+    public void Initialize(int _maxHealth, int _health = -1)
     {
-        this.maxHealth = maxHealth;
-        this.health = health;
-
-        if (health == -1) health = maxHealth;
+        maxHealth = _maxHealth;
+        health = _health < 0 ? _maxHealth : _health;
 
         onInitialize?.Invoke(maxHealth, health);
     }
