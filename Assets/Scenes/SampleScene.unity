@@ -182,7 +182,7 @@ MonoBehaviour:
   NetworkConfig:
     ProtocolVersion: 0
     NetworkTransport: {fileID: 59494326}
-    PlayerPrefab: {fileID: 0}
+    PlayerPrefab: {fileID: 4751034292614606639, guid: 53b2aaa4058de274bbd0d72f1081b5b5, type: 3}
     Prefabs:
       NetworkPrefabsLists:
       - {fileID: 11400000, guid: d913bfe1bd413b245ae4180f685c9fef, type: 2}
@@ -204,6 +204,7 @@ MonoBehaviour:
     NetworkTopology: 0
     UseCMBService: 0
     AutoSpawnPlayerPrefabClientSide: 1
+    NetworkMessageMetrics: 1
     NetworkProfilingMetrics: 1
     OldPrefabList: []
   RunInBackground: 1
@@ -491,7 +492,7 @@ Camera:
   m_ShutterSpeed: 0.005
   m_Aperture: 16
   m_FocusDistance: 10
-  m_FocalLength: 50
+  m_FocalLength: 20.78461
   m_BladeCount: 5
   m_Curvature: {x: 2, y: 11}
   m_BarrelClipping: 0.25
@@ -506,7 +507,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 60
+  field of view: 60.000004
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
@@ -3429,6 +3430,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2081838844}
+  - component: {fileID: 2081838848}
   - component: {fileID: 2081838846}
   - component: {fileID: 2081838847}
   - component: {fileID: 2081838845}
@@ -3608,6 +3610,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b37ff745ca9fe4b4e8e0e851726359de, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   actionMenu: {fileID: 1290408517}
   endMovmentButton: {fileID: 312084078}
   onContinue:
@@ -3665,6 +3668,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b6dafeb2916e9c44797c5aeb9d8d62ad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &2081838848
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2081838843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  GlobalObjectIdHash: 2281544026
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 0
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
 --- !u!114 &2123937112 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6125271941998731062, guid: f70eca6105c2f1d4aa3c218bc6e98877, type: 3}

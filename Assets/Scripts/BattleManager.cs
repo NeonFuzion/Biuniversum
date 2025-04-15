@@ -4,9 +4,10 @@ using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Events;
+using Unity.Netcode;
 using UnityEngine.InputSystem;
 
-public class BattleManager : MonoBehaviour
+public class BattleManager : NetworkBehaviour
 {
     [SerializeField] GameObject actionMenu, endMovmentButton;
     [SerializeField] UnityEvent onContinue, onEndSelection;
@@ -345,4 +346,4 @@ public class EntityBattleData
 }
 
 public enum ActionStage { Moving, Performing }
-public enum ArenaSide { North, South }
+public enum ArenaSide { North, South, None }

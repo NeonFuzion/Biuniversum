@@ -2,8 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
+using Unity.Netcode;
 
-public class BattleData : MonoBehaviour
+public class BattleData : NetworkBehaviour
 {
     static BattleData instance;
     public static BattleData Instance { get => instance; }
