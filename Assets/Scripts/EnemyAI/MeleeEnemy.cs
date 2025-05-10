@@ -8,7 +8,7 @@ public class MeleeEnemy : EnemyAI
     {
         Debug.Log("Enemy preforming action");
         Entity entity = currentEntityBattleData.EntityManager.Entity;
-        return Random.Range(0, entity.Actions.Length);
+        return BattleData.GetRandomInt(0, entity.Actions.Length);
     }
 
     public override Vector2Int[] ChooseMovement(EntityBattleData currentEntityBattleData)
@@ -16,7 +16,7 @@ public class MeleeEnemy : EnemyAI
         Debug.Log("Enemy moving");
         float distance = 0;
         EntityBattleData closestEnemy = null;
-        foreach (EntityBattleData currentData in BattleData.GetList)
+        foreach (EntityBattleData currentData in BattleData.Instance.GetList)
         {
             if (currentData.EntityManager.Entity.EnemyAI) continue;
             float newDistance = Vector2.Distance(currentData.Position, currentEntityBattleData.Position);

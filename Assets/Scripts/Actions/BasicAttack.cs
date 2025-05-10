@@ -8,7 +8,7 @@ public class BasicAttack : DamagingAction
     public override void PreformAction(EntityBattleData currentEntityBattleData, int actionStage)
     {
         Vector2[] shiftedEffectTiles = currentEntityBattleData.ArenaSide == ArenaSide.North ? EffectTiles.Select(x => -x).ToArray() : EffectTiles;
-        foreach (EntityBattleData currentBattleData in BattleData.GetList)
+        foreach (EntityBattleData currentBattleData in BattleData.Instance.GetList)
         {
             if (currentBattleData == currentEntityBattleData) continue;
             if (currentBattleData.ArenaSide == currentEntityBattleData.ArenaSide) continue;

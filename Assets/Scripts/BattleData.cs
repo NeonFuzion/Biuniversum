@@ -3,32 +3,36 @@ using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
 using Unity.Netcode;
+using System;
+using UnityEditor;
 
 public class BattleData : NetworkBehaviour
 {
-    static BattleData instance;
-    public static BattleData Instance { get => instance; }
+    public static BattleData Instance { get; private set; }
 
-    static int northClamp, eastClamp, southClamp, westClamp;
+    public event EventHandler<InitializeBattleDataEventArgs> OnBattleDataFilled;
+    public event EventHandler<TurnDataEventArgs> OnTurnDataFilled;
 
-    static List<EntityBattleData> battleData;
+    int northClamp, eastClamp, southClamp, westClamp;
 
-    public static IList<EntityBattleData> GetList { get => battleData.AsReadOnlyList(); }
+    List<EntityBattleData> battleData;
+    List<Entity> entities;
+    List<ArenaSide> arenaSides;
+    List<EntityTurnData> turnDataList;
+
+    public IList<EntityBattleData> GetList { get => battleData.AsReadOnlyList(); }
 
     private void Awake()
     {
-        if (instance != null && instance != this)
+        if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
         }
         else
         {
-            instance = this;
+            Instance = this;
         }
-    }
 
-    public static void Initialize()
-    {
         battleData = new ();
         northClamp = 3;
         eastClamp = 2;
@@ -36,22 +40,29 @@ public class BattleData : NetworkBehaviour
         westClamp = -2;
     }
 
-    static public void AddBattleData(EntityBattleData data)
+    public override void OnNetworkSpawn()
+    {
+        if (NetworkManager.Singleton.LocalClientId != 1) return;
+        InitializeRandomRpc(UnityEngine.Random.value);
+    }
+
+    public void AddBattleData(EntityBattleData data)
     {
         if (battleData.Contains(data)) return;
         battleData.Add(data);
+
+        if (battleData.Count == 4) InitializeBattleDataRpc();
     }
 
-    static public void AddBattleData(List<EntityBattleData> data)
+    public void AddBattleData(List<EntityBattleData> data)
     {
         foreach (EntityBattleData dataItem in data)
         {
-            if (battleData.Contains(dataItem)) continue;
-            battleData.Add(dataItem);
+            AddBattleData(dataItem);
         }
     }
 
-    static public void UpdatePosition(int index, Vector2Int position)
+    public void UpdatePosition(int index, Vector2Int position)
     {
         Debug.Log("position index: " + index);
         if (index >= battleData.Count) return;
@@ -59,12 +70,18 @@ public class BattleData : NetworkBehaviour
         battleData[index].Position += position;
     }
 
-    static public void UpdatePosition(int index, Vector2Int[] positions)
+    public void UpdatePosition(int index, Vector2Int[] positions)
     {
         UpdatePosition(index, positions[positions.Length - 1]);
     }
 
-    static public int[] GetSpeedBracket()
+    public void SendTurnData(List<EntityTurnData> turnData)
+    {
+        turnDataList = turnData;
+        SendTurnDataRpc();
+    }
+
+    public int[] GetSpeedBracket()
     {
         List<EntityBattleData> output = new ();
 
@@ -78,7 +95,7 @@ public class BattleData : NetworkBehaviour
             var count = fastest.Count();
             var last = count - 1;
             for (var i = 0; i < last; ++i) {
-                var r = Random.Range(i, count);
+                var r = GetRandomInt(i, count);//UnityEngine.Random.Range(i, count);
                 var tmp = fastest[i];
                 fastest[i] = fastest[r];
                 fastest[r] = tmp;
@@ -91,12 +108,12 @@ public class BattleData : NetworkBehaviour
         return output.Select(data => battleData.IndexOf(data)).ToArray();
     }
 
-    public static bool IsPositionEmpty(Vector2Int position)
+    public bool IsPositionEmpty(Vector2Int position)
     {
         return !battleData.Select(data => data.Position).Contains(position);
     }
 
-    public static bool IsPositionClamped(Vector2Int position)
+    public bool IsPositionClamped(Vector2Int position)
     {
         if (position.x > eastClamp) return false;
         if (position.x < westClamp) return false;
@@ -105,8 +122,42 @@ public class BattleData : NetworkBehaviour
         return true;
     }
 
-    public static bool IsPositionValid(Vector2Int position)
+    public bool IsPositionValid(Vector2Int position)
     {
         return IsPositionClamped(position) && IsPositionEmpty(position);
     }
+
+    public static int GetRandomInt(int min, int max)
+    {
+        return Mathf.RoundToInt(UnityEngine.Random.value * (max - min)) + min;
+    }
+
+    [Rpc(SendTo.Everyone)]
+    public void InitializeBattleDataRpc()
+    {
+        OnBattleDataFilled?.Invoke(this, new () { entities = entities, arenaSides = arenaSides });
+    }
+
+    [Rpc(SendTo.Everyone)]
+    public void InitializeRandomRpc(float randomValue)
+    {
+        UnityEngine.Random.InitState((int)(randomValue * 100));
+    }
+
+    [Rpc(SendTo.Server)]
+    public void SendTurnDataRpc()
+    {
+        OnTurnDataFilled?.Invoke(this, new () { turnDataList = turnDataList });
+    }
+}
+
+public class InitializeBattleDataEventArgs : EventArgs
+{
+    public List<Entity> entities;
+    public List<ArenaSide> arenaSides;
+}
+
+public class TurnDataEventArgs : EventArgs
+{
+    public List<EntityTurnData> turnDataList;
 }

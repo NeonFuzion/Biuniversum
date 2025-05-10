@@ -10,7 +10,7 @@ public class EntityManager : MonoBehaviour
     [SerializeField] Health health;
     [SerializeField] GameObject modelManager;
 
-    public Entity Entity { get => entity; }
+    public Entity Entity { get => entity; set => entity = value;}
     public EntityObject EntityObject { get => entityObject; }
     public EntityAnimationManager EntityAnimationManager { get => entityAnimationManager; }
     public ActionVisual ActionVisual { get => actionVisual; }
@@ -36,9 +36,9 @@ public class EntityManager : MonoBehaviour
 
     public void KillEntity()
     {
-        int index = BattleData.GetList.Select(data => data.EntityManager).ToList().IndexOf(this);
-        EntityBattleData data = BattleData.GetList[index];
+        int index = BattleData.Instance.GetList.Select(data => data.EntityManager).ToList().IndexOf(this);
+        EntityBattleData data = BattleData.Instance.GetList[index];
         data.EntityManager.gameObject.SetActive(false);
-        BattleData.UpdatePosition(index, new Vector2Int(8, 8));
+        BattleData.Instance.UpdatePosition(index, new Vector2Int(8, 8));
     }
 }

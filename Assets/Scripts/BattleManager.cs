@@ -6,43 +6,25 @@ using UnityEngine;
 using UnityEngine.Events;
 using Unity.Netcode;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 
 public class BattleManager : NetworkBehaviour
 {
-    [SerializeField] GameObject actionMenu, endMovmentButton;
+    [SerializeField] GameObject prefabEntity, actionMenu, endMovmentButton, camera;
     [SerializeField] UnityEvent onContinue, onEndSelection;
-    [SerializeField] List<EntityBattleData> battleData;
-    
+    [SerializeField] List<Entity> entities;
+
     EntityTurnData[] turnData;
     List<Vector2Int> currentMovement;
-    int[] turnOrder;
+    SelectionPhase selectionPhase;
+    ArenaSide arenaSide;
 
+    int[] turnOrder;
     int entityIndex, actionIndex, maxSteps, speedIndex;
-    bool actionSelectable, cyclingTurn;
 
     void Awake()
     {
-        turnData = new EntityTurnData[battleData.Count];
-        currentMovement = new();
-        BattleData.Initialize();
 
-        foreach (EntityBattleData currentBattleData in battleData)
-        {
-            bool flip = currentBattleData.ArenaSide == ArenaSide.North;
-            EntityManager manager = currentBattleData.EntityManager;
-            manager.ModelManager.transform.eulerAngles = new Vector3(0, flip ? 180 : 0, 0);
-            manager.EntityObject.OnFinishActionState.AddListener(IncrementCycle);
-            manager.EntityObject.Initizalize(currentBattleData);
-            manager.EntityObject.transform.position = new (currentBattleData.Position.x, manager.EntityObject.transform.position.y, currentBattleData.Position.y);
-            manager.Initialize();
-            BattleData.AddBattleData(currentBattleData);
-        }
-
-        actionIndex = 0;
-        entityIndex = 0;
-        actionSelectable = false;
-        cyclingTurn = false;
-        SetNextControllableCharacter();
     }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -57,19 +39,31 @@ public class BattleManager : NetworkBehaviour
         
     }
 
+    public override void OnNetworkSpawn()
+    {
+        currentMovement = new();
+        arenaSide = (ArenaSide)(NetworkManager.Singleton.LocalClientId + 1);
+
+        actionIndex = 0;
+        entityIndex = 0;
+        selectionPhase = SelectionPhase.None;
+        SetNextControllableCharacter();
+    }
+
     void SetNextControllableCharacter()
     {
         while (true)
         {
-            if (entityIndex >= BattleData.GetList.Count)
+            if (entityIndex >= BattleData.Instance.GetList.Count)
             {
                 EndSelection();
                 break;
             }
             else
             {
-                EnemyAI script = BattleData.GetList[entityIndex].EntityManager.Entity.EnemyAI;
-                if (script == null) break;
+                EntityBattleData currentBattleData = BattleData.Instance.GetList[entityIndex];
+                EnemyAI script = currentBattleData.EntityManager.Entity.EnemyAI;
+                if (script == null && currentBattleData.ArenaSide == arenaSide) break;
                 entityIndex++;
             }
         }
@@ -80,6 +74,7 @@ public class BattleManager : NetworkBehaviour
         Debug.Log("Ending selection");
         actionIndex = 0;
         entityIndex = 0;
+        selectionPhase = SelectionPhase.Cycling;
         endMovmentButton.SetActive(false);
         
         for (int i = 0; i < turnData.Length; i++)
@@ -87,33 +82,31 @@ public class BattleManager : NetworkBehaviour
             if (turnData[i] != null) continue;
             turnData[i] = new EntityTurnData(-1, new Vector2Int[] {});
         }
-        cyclingTurn = true;
-        turnOrder = BattleData.GetSpeedBracket();
+        turnOrder = BattleData.Instance.GetSpeedBracket();
         PreformCycle();
     }
 
     void SetupMovement()
     {
-        if (cyclingTurn) return;
+        if (selectionPhase == SelectionPhase.Cycling) return;
         Debug.Log("Setting up movement");
-        actionSelectable = true;
-        cyclingTurn = false;
+        selectionPhase = SelectionPhase.Movement;
         endMovmentButton.SetActive(true);
         currentMovement.Clear();
-        maxSteps = BattleData.GetList[entityIndex].EntityManager.Entity.MoveTiles;
-        BattleData.GetList[entityIndex].EntityManager.ActionVisual.SetMovement();
+        maxSteps = BattleData.Instance.GetList[entityIndex].EntityManager.Entity.MoveTiles;
+        BattleData.Instance.GetList[entityIndex].EntityManager.ActionVisual.SetMovement();
     }
 
     Vector2Int[] CheckPath(Vector2Int[] movement)
     {
         Debug.Log("Raw: " + string.Join(", ", movement));
-        Vector2Int currentPosition = BattleData.GetList[speedIndex].Position;
+        Vector2Int currentPosition = BattleData.Instance.GetList[speedIndex].Position;
         for (int i = 0; i < movement.Length; i++)
         {
             Vector2Int newPosition = currentPosition + movement[i];
 
-            //Debug.Log(entityIndex + " | " + newPosition + " | " + string.Join(", ", BattleData.GetList.Select(data => data.Position)));
-            if (BattleData.IsPositionEmpty(newPosition)) continue;
+            //Debug.Log(entityIndex + " | " + newPosition + " | " + string.Join(", ", BattleData.Instance.GetList.Select(data => data.Position)));
+            if (BattleData.Instance.IsPositionEmpty(newPosition)) continue;
             Debug.Log("Unfiltered: " + string.Join(", ", movement));
             List<Vector2Int> transfer = movement.ToList().GetRange(0, i);
             Debug.Log("Filtered: " + string.Join(", ", transfer));
@@ -122,12 +115,36 @@ public class BattleManager : NetworkBehaviour
         return movement;
     }
 
+    public void SpawnEntities(List<Entity> allEntities, List<ArenaSide> arenaSides)
+    {
+        for (int i = 0; i < BattleData.Instance.GetList.Count; i++)
+        {
+            bool flip = arenaSides[i] == ArenaSide.North;
+            Vector2Int position = new (flip ? 3 : -3, i - 2);
+            Vector3 worldPosition = EntityObject.TileToWorldPosition(position) + Vector3.up * 2;
+            GameObject newEntity = Instantiate(prefabEntity, worldPosition, Quaternion.identity);
+            newEntity.gameObject.name = allEntities[i].Name;
+            EntityManager entityManager = newEntity.GetComponent<EntityManager>();
+            entityManager.Entity = allEntities[i];
+
+            EntityBattleData currentBattleData = new (entityManager, arenaSide, position);
+            entityManager.ModelManager.transform.eulerAngles = new Vector3(0, flip ? 180 : 0, 0);
+            entityManager.EntityObject.OnFinishActionState.AddListener(IncrementCycle);
+            entityManager.EntityObject.Initizalize(currentBattleData);
+            entityManager.Initialize();
+            BattleData.Instance.AddBattleData(currentBattleData);
+
+            camera.transform.position = new (0, 3, flip ? 5 : -5);
+            camera.transform.eulerAngles = new (30, flip ? 180 : 0, 0);
+        }
+    }
+
     public void MovementInput(InputAction.CallbackContext context)
     {
         if (!context.performed) return;
         if (actionIndex != 0) return;
         if (currentMovement.Count >= maxSteps) return;
-        if (cyclingTurn) return;
+        if (selectionPhase == SelectionPhase.Cycling) return;
         Debug.Log("Selecting path");
         Vector2 input = context.action.ReadValue<Vector2>();
         Vector2Int movement = new (Mathf.RoundToInt(input.x), Mathf.RoundToInt(input.y));
@@ -135,13 +152,13 @@ public class BattleManager : NetworkBehaviour
         if (Mathf.Abs(movement.x) == Mathf.Abs(movement.y)) return;
         if (currentMovement.Count > 0) movement += currentMovement[currentMovement.Count - 1];
 
-        Vector2Int worldPosition = movement + BattleData.GetList[entityIndex].Position;
+        Vector2Int worldPosition = movement + BattleData.Instance.GetList[entityIndex].Position;
         if (currentMovement.Count > 0) worldPosition += currentMovement[currentMovement.Count - 1];
         Debug.Log(worldPosition);
-        if (!BattleData.IsPositionClamped(worldPosition)) return;
+        if (!BattleData.Instance.IsPositionClamped(worldPosition)) return;
 
         if (currentMovement.Contains(worldPosition)) return;
-        ActionVisual visual = BattleData.GetList[entityIndex].EntityManager.ActionVisual;
+        ActionVisual visual = BattleData.Instance.GetList[entityIndex].EntityManager.ActionVisual;
         visual.AddSteps(EntityObject.TileToWorldPosition(movement));
         currentMovement.Add(movement);
     }
@@ -150,11 +167,11 @@ public class BattleManager : NetworkBehaviour
     {
         if (!context.performed) return;
         if (actionIndex != 0) return;
-        if (cyclingTurn) return;
+        if (selectionPhase == SelectionPhase.Cycling) return;
         if (currentMovement.Count == 0) return;
         Debug.Log("Removing steps");
         currentMovement.RemoveAt(currentMovement.Count - 1);
-        ActionVisual visual = BattleData.GetList[entityIndex].EntityManager.ActionVisual;
+        ActionVisual visual = BattleData.Instance.GetList[entityIndex].EntityManager.ActionVisual;
         visual.RemoveSteps();
     }
 
@@ -164,7 +181,7 @@ public class BattleManager : NetworkBehaviour
         turnData[entityIndex] = currentTurnData;
         HideVisuals();
         actionIndex = 0;
-        actionSelectable = false;
+        selectionPhase = SelectionPhase.Action;
         entityIndex++;
         SetNextControllableCharacter();
         Debug.Log(entityIndex);
@@ -182,7 +199,7 @@ public class BattleManager : NetworkBehaviour
     public void PreformCycle()
     {
         speedIndex = turnOrder[entityIndex];
-        EntityBattleData currentBattleData = BattleData.GetList[speedIndex];
+        EntityBattleData currentBattleData = BattleData.Instance.GetList[speedIndex];
 
         if (!currentBattleData.EntityManager.gameObject.activeInHierarchy)
         {
@@ -211,9 +228,9 @@ public class BattleManager : NetworkBehaviour
                     IncrementCycle();
                     break;
                 }
-                Debug.Log("Premove" + entityIndex + ": " + string.Join(", ", BattleData.GetList.Select(data => data.Position)));
-                BattleData.UpdatePosition(speedIndex, checkedPath);
-                Debug.Log("Postmove" + entityIndex + ": " + string.Join(", ", BattleData.GetList.Select(data => data.Position)));
+                Debug.Log("Premove" + entityIndex + ": " + string.Join(", ", BattleData.Instance.GetList.Select(data => data.Position)));
+                BattleData.Instance.UpdatePosition(speedIndex, checkedPath);
+                Debug.Log("Postmove" + entityIndex + ": " + string.Join(", ", BattleData.Instance.GetList.Select(data => data.Position)));
 
                 currentBattleData.EntityManager.EntityObject.PerformMovement(checkedPath.Select(x => EntityObject.TileToWorldPosition(x)).ToArray());
                 break;
@@ -239,15 +256,14 @@ public class BattleManager : NetworkBehaviour
                 break;
         }
 
-        Debug.Log(entityIndex + " | " + BattleData.GetList.Count);
-        if (entityIndex >= BattleData.GetList.Count)
+        Debug.Log(entityIndex + " | " + BattleData.Instance.GetList.Count);
+        if (entityIndex >= BattleData.Instance.GetList.Count)
         {
             actionIndex = 0;
             entityIndex = 0;
-            actionSelectable = true;
-            cyclingTurn = false;
+            selectionPhase = SelectionPhase.Movement;
             
-            turnData = new EntityTurnData[BattleData.GetList.Count];
+            turnData = new EntityTurnData[BattleData.Instance.GetList.Count];
             SetNextControllableCharacter();
             SetupMovement();
         }
@@ -266,10 +282,10 @@ public class BattleManager : NetworkBehaviour
     public void DisplayActionMenu()
     {
         //if (actionIndex == 0) return;
-        if (!actionSelectable) return;
+        if (selectionPhase != SelectionPhase.Action) return;
         actionMenu.SetActive(true);
         endMovmentButton.SetActive(false);
-        EntityManager entityManager = BattleData.GetList[entityIndex].EntityManager;
+        EntityManager entityManager = BattleData.Instance.GetList[entityIndex].EntityManager;
         for (int i = 0; i < actionMenu.transform.childCount; i++)
         {
             GameObject actionButton = actionMenu.transform.GetChild(i).gameObject;
@@ -289,52 +305,47 @@ public class BattleManager : NetworkBehaviour
 
     public void ShowEffectedTiles(Action action)
     {
-        BattleData.GetList[entityIndex].EntityManager.ActionVisual.ShowEffectedTiles(action);
+        BattleData.Instance.GetList[entityIndex].EntityManager.ActionVisual.ShowEffectedTiles(action);
     }
 
     public void HideEffectedTiles()
     {
-        BattleData.GetList[entityIndex].EntityManager.ActionVisual.HideEffectedTiles();
+        BattleData.Instance.GetList[entityIndex].EntityManager.ActionVisual.HideEffectedTiles();
     }
 
     public void ShowVisuals(Action action)
     {
-        BattleData.GetList[entityIndex].EntityManager.ActionVisual.ShowVisuals(action);
+        BattleData.Instance.GetList[entityIndex].EntityManager.ActionVisual.ShowVisuals(action);
     }
 
     public void HideVisuals()
     {
-        BattleData.GetList[entityIndex].EntityManager.ActionVisual.HideVisuals();
+        BattleData.Instance.GetList[entityIndex].EntityManager.ActionVisual.HideVisuals();
     }
 }
 
 public class EntityTurnData
 {
-    int actionChoice;
-
-    Vector2Int[] movement;
+    public int ActionChoice { get; private set; }
     
-    public int ActionChoice { get => actionChoice; set => actionChoice = value; }
-    
-    public Vector2Int[] Movement { get => movement; set => movement = value; }
+    public Vector2Int[] Movement { get; private set; }
 
     public EntityTurnData(int actionChoice, Vector2Int[] movement)
     {
-        this.actionChoice = actionChoice;
+        ActionChoice = actionChoice;
 
-        this.movement = movement;
+        Movement = movement;
     }
 }
 
-[Serializable]
 public class EntityBattleData
 {
-    [SerializeField] EntityManager entityManager;
-    [SerializeField] ArenaSide arenaSide;
-    [SerializeField] Vector2Int position;
+    EntityManager entityManager;
+    ArenaSide arenaSide;
+    Vector2Int position;
 
-    public EntityManager EntityManager { get => entityManager; }
-    public ArenaSide ArenaSide { get => arenaSide; }
+    public EntityManager EntityManager { get => entityManager; set => entityManager = value; }
+    public ArenaSide ArenaSide { get => arenaSide; set => arenaSide = value; }
     public Vector2Int Position { get => position; set => position = value; }
 
     public EntityBattleData(EntityManager entityManager, ArenaSide arenaSide, Vector2Int position)
@@ -346,4 +357,5 @@ public class EntityBattleData
 }
 
 public enum ActionStage { Moving, Performing }
-public enum ArenaSide { North, South, None }
+public enum ArenaSide { None, North, South }
+public enum SelectionPhase { None, Movement, Action, Cycling }
