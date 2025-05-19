@@ -1,17 +1,16 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class ActionVisual : MonoBehaviour
 {
-    [SerializeField] Transform[] tiles;
-    [SerializeField] Transform tileManager;
-    [SerializeField] GameObject pointer;
-
-    LineRenderer lineRenderer;
+    [SerializeField] LineRenderer lineRenderer;
+    [SerializeField] List<GameObject> actionAreaTiles;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-
+        
     }
 
     // Update is called once per frame
@@ -20,63 +19,46 @@ public class ActionVisual : MonoBehaviour
         
     }
 
-    public void Initialize()
+    public void AddStep(Vector2Int step)
     {
-        lineRenderer = GetComponent<LineRenderer>();
+        int lastIndex = lineRenderer.positionCount++ - 1;
+        Vector3 lastPosition = lineRenderer.GetPosition(lastIndex);
+        Vector3 worldStep = new (step.x, 0, step.y);
+        lineRenderer.SetPosition(lastIndex, lastPosition + worldStep);
     }
 
-    public void SetMovement()
+    public void ShowEffectArea(List<Vector2Int> area)
     {
-        lineRenderer.enabled = true;
-        lineRenderer.positionCount = 1;
-        pointer.SetActive(true);
-    }
-
-    public void AddSteps(Vector3 movement)
-    {
-        Debug.Log("Adding steps");
-        int lastIndex = lineRenderer.positionCount++;
-        lineRenderer.SetPosition(lastIndex, movement);
-    }
-
-    public void RemoveSteps()
-    {
-        Debug.Log("Removing steps");
-        lineRenderer.positionCount--;
-    }
-
-    public void ShowEffectedTiles(Action action)
-    {
-        tileManager.localPosition = lineRenderer.GetPosition(lineRenderer.positionCount - 1);
-        for (int i = 0; i < tiles.Length; i++)
+        for (int i = 0; i < actionAreaTiles.Count; i++)
         {
-            bool withinBounds = action.EffectTiles.Length > i;
-            tiles[i].gameObject.SetActive(withinBounds);
-            
-            if (!withinBounds) continue;
-            Vector2 position = action.EffectTiles[i];
-            tiles[i].localPosition = new Vector3(position.x, 0, position.y);
+            GameObject tile = actionAreaTiles[i];
+            bool isActive = area.Count < i;
+            tile.SetActive(isActive);
+
+            if (!isActive) continue;
+            tile.transform.position = new (area[i].x, tile.transform.position.y, area[i].y);
         }
     }
 
-    public void HideEffectedTiles()
+    public void ShowSteps(List<Vector2Int> steps)
     {
-        foreach (Transform tile in tiles)
-        {
-            tile.gameObject.SetActive(false);
-        }
+
     }
 
     public void HideVisuals()
     {
-        HideEffectedTiles();
         lineRenderer.enabled = false;
-        pointer.SetActive(false);
+        actionAreaTiles.ForEach(tile => tile.SetActive(false));
     }
 
-    public void ShowVisuals(Action action)
+    public void ShowVisuals(int entityIndex, TurnData turnData)
     {
-        ShowEffectedTiles(action);
         lineRenderer.enabled = true;
+        
+    }
+
+    public void SetTarget(int index)
+    {
+        
     }
 }
