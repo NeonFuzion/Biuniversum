@@ -35,8 +35,8 @@ public class BattleManager : NetworkBehaviour
         turnDataList = new();
 
         GameObject[] transfer = arenaSide == ArenaSide.North ? northEntityObjects : southEntityObjects;
-        List<EntityInitializationData> dataList = transfer.Select(x => new EntityInitializationData() { ArenaSide = arenaSide, EntityGameObject = x }).ToList();
-        SpawnEntities(this, new() { EntitySidePairs = JsonUtility.ToJson(dataList) });
+        EntityInitializationDataList dataList = new() { DataList = transfer.Select(x => new EntityInitializationData() { ArenaSide = arenaSide, EntityGameObject = x }).ToArray() };
+        SpawnEntities(this, new() { EntitySidePairs = JsonUtility.ToJson(dataList, true) });
 
         BattleData.Instance.OnSendGameObjects += SpawnEntities;
 
@@ -65,14 +65,14 @@ public class BattleManager : NetworkBehaviour
         //Debug.Log("Spawning entities");
         int northX = -2;
         int southX = -2;
-        Debug.Log(args.EntitySidePairs);
+        //Debug.Log(args.EntitySidePairs.ToString());
         EntityInitializationDataList dataList = JsonUtility.FromJson<EntityInitializationDataList>(args.EntitySidePairs);
-        Debug.Log(string.Join(", ", dataList));
+        Debug.Log(string.Join(", ", dataList.DataList.Select(x => x.EntityGameObject + " | " + x.ArenaSide)));
         foreach (EntityInitializationData data in dataList.DataList)
         {
             bool isNorth = data.ArenaSide == ArenaSide.North;
             Vector3 spawnPosition = new(isNorth ? northX++ : southX++, 2, isNorth ? 3 : -3);
-            GameObject entityGameObject = Instantiate(data.EntityGameObject, spawnPosition, Quaternion.identity);
+            GameObject entityGameObject = Instantiate(data.EntityGameObject.gameObject, spawnPosition, Quaternion.identity);
         }
 
         if (NetworkManager.Singleton.LocalClientId != 0) return;

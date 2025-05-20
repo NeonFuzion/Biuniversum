@@ -47,7 +47,7 @@ public class BattleData : NetworkBehaviour
             }).ToArray()
         };
         string json = JsonUtility.ToJson(dataList, true);
-        Debug.Log(json);
+        //Debug.Log(json);
 
         SendEntityGameObjectsRpc(json);
     }
