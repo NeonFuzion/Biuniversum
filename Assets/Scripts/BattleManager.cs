@@ -1,92 +1,214 @@
 using UnityEngine;
 using Unity.Netcode;
 using System.Collections.Generic;
-using UnityEngine.InputSystem;
+using System;
 using System.Linq;
-using Unity.VisualScripting;
+using Unity.Collections;
 
 public class BattleManager : NetworkBehaviour
 {
-    [SerializeField] GameObject actionVisual;
-    [SerializeField] GameObject[] northEntityObjects, southEntityObjects;
+    [SerializeField] Transform[] northEntities, southEntities;
+
+    public static BattleManager Instance { get; private set; }
+
+    public event EventHandler<TurnDataArgs> OnSendTurnData;
+    public class TurnDataArgs : EventArgs
+    {
+        public TurnData[] TurnData;
+    }
+
+    public event EventHandler<EntityArgs> OnSendEntities;
+    public class EntityArgs : EventArgs
+    {
+        public string[] PrefabNames;
+        public ArenaSide ArenaSide;
+    }
+
+    public event EventHandler<CharacterIndexArgs> OnCharacterSelected;
+    public class CharacterIndexArgs : EventArgs
+    {
+        public int Index;
+    }
+
+    public event EventHandler<MovementArgs> OnMovement;
+    public class MovementArgs : EventArgs
+    {
+        public Vector2Int Step;
+        public bool CanAdd;
+    }
+
+    public event EventHandler<ActionArgs> OnAction;
+    public class ActionArgs : EventArgs
+    {
+        public int ActionIndex;
+    }
+
+    public event EventHandler OnTurnEnded;
 
     List<TurnData> turnDataList;
+    List<BattleData> battleDataList;
     CycleState cycleState;
     ArenaSide arenaSide;
 
-    int entityIndex;
+    int entityIndex, remainingSteps;
+
+    public List<TurnData> TurnDataList { get => turnDataList; }
+    public List<BattleData> BattleDataList { get => battleDataList; }
+    public ArenaSide ArenaSide { get => arenaSide; }
+
+    public int EntityIndex { get; }
+
+    void Awake()
+    {
+        if (Instance && Instance != this) Destroy(this);
+        else Instance = this;
+
+        battleDataList = new();
+        turnDataList = new();
+        arenaSide = ArenaSide.North;
+
+        for (int i = 0; i < 8; i++)
+        {
+            turnDataList.Add(new());
+        }
+    }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        
+        OnSendEntities += AddEntities;
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+
     }
 
     public override void OnNetworkSpawn()
     {
-        cycleState = CycleState.Movement;
-        arenaSide = (ArenaSide)((int)NetworkManager.Singleton.LocalClientId + 1);
-        turnDataList = new();
+        arenaSide = (ArenaSide)(NetworkManager.Singleton.LocalClientId + 1);
 
-        GameObject[] transfer = arenaSide == ArenaSide.North ? northEntityObjects : southEntityObjects;
-        EntityInitializationDataList dataList = new() { DataList = transfer.Select(x => new EntityInitializationData() { ArenaSide = arenaSide, EntityGameObject = x }).ToArray() };
-        SpawnEntities(this, new() { EntitySidePairs = JsonUtility.ToJson(dataList, true) });
-
-        BattleData.Instance.OnSendGameObjects += SpawnEntities;
-
-        if (NetworkManager.Singleton.LocalClientId != 1) return;
-        BattleData.Instance.SendEntityGameObjects(arenaSide, transfer.ToList());
+        if (arenaSide != ArenaSide.South) return;
+        SendEntitiesRpc();
     }
 
     void SetupMovement()
     {
-        entityIndex = 0;
+        ChangeEntity(0);
     }
 
-    public void Movement(InputAction.CallbackContext context)
+    void StartBattle()
     {
-        if (!context.performed) return;
-        if (cycleState != CycleState.Movement) return;
+        StartBattleRpc(UnityEngine.Random.Range(0, 1000));
+    }
 
-        Vector2 inputVector = context.action.ReadValue<Vector2>();
+    public void Movement(Vector2 inputVector)
+    {
+        if (cycleState != CycleState.Selecting) return;
+
         if (Mathf.Abs(inputVector.x) > 0.05f && Mathf.Abs(inputVector.y) > 0.05f) return;
-        Vector2Int movement = new(Mathf.RoundToInt(inputVector.x), Mathf.RoundToInt(inputVector.y));
+        Vector2Int movement = new((int)inputVector.x, (int)inputVector.y);
+        bool canAdd = remainingSteps-- > 0;
+        OnMovement?.Invoke(this, new() { Step = movement, CanAdd = canAdd });
+
+        if (!canAdd) return;
         turnDataList[entityIndex].Movement.Add(movement);
     }
 
-    public void SpawnEntities(object sender, EntityGameObjectListArgs args)
+    public void Action(int actionIndex)
     {
-        //Debug.Log("Spawning entities");
-        int northX = -2;
-        int southX = -2;
-        //Debug.Log(args.EntitySidePairs.ToString());
-        EntityInitializationDataList dataList = JsonUtility.FromJson<EntityInitializationDataList>(args.EntitySidePairs);
-        Debug.Log(string.Join(", ", dataList.DataList.Select(x => x.EntityGameObject + " | " + x.ArenaSide)));
-        foreach (EntityInitializationData data in dataList.DataList)
-        {
-            bool isNorth = data.ArenaSide == ArenaSide.North;
-            Vector3 spawnPosition = new(isNorth ? northX++ : southX++, 2, isNorth ? 3 : -3);
-            GameObject entityGameObject = Instantiate(data.EntityGameObject.gameObject, spawnPosition, Quaternion.identity);
-        }
+        OnAction?.Invoke(this, new() { ActionIndex = actionIndex });
+    }
 
-        if (NetworkManager.Singleton.LocalClientId != 0) return;
-        GameObject[] transfer = arenaSide == ArenaSide.North ? northEntityObjects : southEntityObjects;
-        BattleData.Instance.SendEntityGameObjects(arenaSide, transfer.ToList());
+    public void ChangeEntity(int index = -1)
+    {
+        cycleState = CycleState.Selecting;
+        entityIndex = index == -1 ? (entityIndex + 1) % 4 : index;
+        remainingSteps = battleDataList[entityIndex].EntitySO.Step;
+        OnCharacterSelected?.Invoke(this, new() { Index = entityIndex });
+    }
+
+    public void AddEntities(object sender, EntityArgs args)
+    {
+        Debug.Log("Recieving data");
+        AddEntitiesRpc(string.Join("|", args.PrefabNames), args.ArenaSide);
+    }
+
+    public void EndTurn()
+    {
+        OnTurnEnded?.Invoke(this, new());
+        OnSendTurnData?.Invoke(this, new() { TurnData = turnDataList.ToArray() });
+    }
+
+    [Rpc(SendTo.Everyone)]
+    public void SendEntitiesRpc()
+    {
+        Debug.Log("Sending data");
+        OnSendEntities?.Invoke(this, new()
+        {
+            ArenaSide = arenaSide,
+            PrefabNames = (arenaSide == ArenaSide.North ? northEntities : southEntities).Select(x => x.gameObject.name).ToArray()
+        });
+    }
+
+    [Rpc(SendTo.Everyone)]
+    public void AddEntitiesRpc(string paths, ArenaSide arenaSide)
+    {
+        //Debug.Log("Spawning objects");
+        int x = -2;
+        foreach (string path in paths.Split("|"))
+        {
+            battleDataList.Add(new BattleData()
+            {
+                EntitySO = Resources.Load($"EntityData/{path}") as EntitySO,
+                ArenaSide = arenaSide
+            }
+            );
+
+            //if (this.arenaSide == ArenaSide.South) continue;
+            Vector3 spawnPosition = new(x++, 0, arenaSide == ArenaSide.North ? 3 : -3);
+            GameObject entityGameObject = Instantiate(Resources.Load($"Entities/{path}") as GameObject, spawnPosition, Quaternion.identity);
+            //entityGameObject.GetComponent<NetworkObject>().Spawn(true);
+            BattleData data = battleDataList[battleDataList.Count - 1];
+            data.Transform = entityGameObject.transform;
+            data.Position = new((int)spawnPosition.x, (int)spawnPosition.z);
+
+            if (battleDataList.Count < 8) continue;
+            StartBattle();
+        }
+    }
+
+    [Rpc(SendTo.Everyone)]
+    public void StartBattleRpc(int seed)
+    {
+        //Debug.Log($"Full send {battleDataList.Count}");
+        SetupMovement();
+
+        if (NetworkManager.Singleton.LocalClientId != 1) return;
+        UnityEngine.Random.InitState(seed);
     }
 }
 
-[System.Serializable]
 public class TurnData
 {
-    public List<Vector2Int> Movement = new ();
+    public List<Vector2Int> Movement = new();
     public int ActionIndex;
 }
 
-public enum CycleState { None, Movement, Action, Cycling }
+public class BattleData
+{
+    public EntitySO EntitySO;
+    public Transform Transform;
+    public ArenaSide ArenaSide;
+    public Vector2Int Position;
+    public int Attack, Health, Speed;
+}
+
+public class BattleDataList
+{
+    public BattleData[] List;
+}
+
+public enum CycleState { None, Selecting, Cycling }
 public enum ArenaSide { None, North, South }
