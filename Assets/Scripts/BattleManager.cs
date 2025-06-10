@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System;
 using System.Linq;
 using Unity.Collections;
+using System.Runtime.InteropServices.WindowsRuntime;
 
 public class BattleManager : NetworkBehaviour
 {
@@ -51,13 +52,13 @@ public class BattleManager : NetworkBehaviour
     CycleState cycleState;
     ArenaSide arenaSide;
 
-    int entityIndex, remainingSteps;
+    int entityIndex, remainingSteps, entityIndexOffset;
 
     public List<TurnData> TurnDataList { get => turnDataList; }
     public List<BattleData> BattleDataList { get => battleDataList; }
     public ArenaSide ArenaSide { get => arenaSide; }
 
-    public int EntityIndex { get; }
+    public int EntityIndex { get => entityIndex; }
 
     void Awake()
     {
@@ -67,6 +68,7 @@ public class BattleManager : NetworkBehaviour
         battleDataList = new();
         turnDataList = new();
         arenaSide = ArenaSide.North;
+        entityIndexOffset = 0;
 
         for (int i = 0; i < 8; i++)
         {
@@ -78,6 +80,7 @@ public class BattleManager : NetworkBehaviour
     void Start()
     {
         OnSendEntities += AddEntities;
+        OnAction += SelectAction;
     }
 
     // Update is called once per frame
@@ -89,11 +92,12 @@ public class BattleManager : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         arenaSide = (ArenaSide)(NetworkManager.Singleton.LocalClientId + 1);
+        entityIndexOffset = arenaSide == ArenaSide.North ? 0 : 4;
 
         if (arenaSide != ArenaSide.South) return;
         SendEntitiesRpc();
     }
-
+    
     void SetupMovement()
     {
         ChangeEntity(0);
@@ -104,6 +108,17 @@ public class BattleManager : NetworkBehaviour
         StartBattleRpc(UnityEngine.Random.Range(0, 1000));
     }
 
+    void SelectAction(object sender, ActionArgs args)
+    {
+        turnDataList[entityIndex].ActionIndex = args.ActionIndex;
+    }
+
+    public int ArenaSideFlip(ArenaSide arenaSide = ArenaSide.None)
+    {
+        ArenaSide currentSide = arenaSide == ArenaSide.None ? this.arenaSide : arenaSide;
+        return currentSide == ArenaSide.North ? 1 : -1;
+    }
+
     public void Movement(Vector2 inputVector)
     {
         if (cycleState != CycleState.Selecting) return;
@@ -111,10 +126,10 @@ public class BattleManager : NetworkBehaviour
         if (Mathf.Abs(inputVector.x) > 0.05f && Mathf.Abs(inputVector.y) > 0.05f) return;
         Vector2Int movement = new((int)inputVector.x, (int)inputVector.y);
         bool canAdd = remainingSteps-- > 0;
-        OnMovement?.Invoke(this, new() { Step = movement, CanAdd = canAdd, Index = entityIndex });
+        OnMovement?.Invoke(this, new() { Step = movement * ArenaSideFlip(), CanAdd = canAdd, Index = entityIndex });
 
         if (!canAdd) return;
-        turnDataList[entityIndex].Movement.Add(movement);
+        turnDataList[entityIndex].Movement.Add(movement * ArenaSideFlip());
     }
 
     public void Action(int actionIndex)
@@ -125,7 +140,7 @@ public class BattleManager : NetworkBehaviour
     public void ChangeEntity(int index = -1)
     {
         cycleState = CycleState.Selecting;
-        entityIndex = index == -1 ? (entityIndex + 1) % 4 : index;
+        entityIndex = (index == -1 ? (entityIndex + 1) % 4 : index) + entityIndexOffset;
         remainingSteps = battleDataList[entityIndex].EntitySO.Step;
         OnCharacterSelected?.Invoke(this, new() { Index = entityIndex });
     }
@@ -157,23 +172,24 @@ public class BattleManager : NetworkBehaviour
     public void AddEntitiesRpc(string paths, ArenaSide arenaSide)
     {
         //Debug.Log("Spawning objects");
-        int x = -2;
+        int x = 2 * ArenaSideFlip(arenaSide);
         foreach (string path in paths.Split("|"))
         {
-            battleDataList.Add(new BattleData()
-            {
-                EntitySO = Resources.Load($"EntityData/{path}") as EntitySO,
-                ArenaSide = arenaSide
-            }
+            battleDataList.Add(new BattleData() {
+                    EntitySO = Resources.Load($"EntityData/{path}") as EntitySO,
+                    ArenaSide = arenaSide
+                }
             );
 
             //if (this.arenaSide == ArenaSide.South) continue;
-            Vector3 spawnPosition = new(x++, 0, arenaSide == ArenaSide.North ? 3 : -3);
+            Vector3 spawnPosition = new(x, 0, arenaSide == ArenaSide.North ? 3 : -3);
             GameObject entityGameObject = Instantiate(Resources.Load($"Entities/{path}") as GameObject, spawnPosition, Quaternion.identity);
             //entityGameObject.GetComponent<NetworkObject>().Spawn(true);
             BattleData data = battleDataList[battleDataList.Count - 1];
+            entityGameObject.transform.localScale = new(1, 1, -ArenaSideFlip(arenaSide) * ArenaSideFlip(this.arenaSide));
             data.Transform = entityGameObject.transform;
             data.Position = new((int)spawnPosition.x, (int)spawnPosition.z);
+            x -= ArenaSideFlip(arenaSide);
 
             if (battleDataList.Count < 8) continue;
             StartBattle();

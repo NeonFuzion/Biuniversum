@@ -7,17 +7,16 @@ using System.Linq;
 public class BattleVisuals : MonoBehaviour
 {
     [SerializeField] Transform planningTransform, pointer;
-    [SerializeField] Transform[] effectTiles;
     [SerializeField] TextMeshProUGUI nameText, healthText;
-
-    LineRenderer lineRenderer;
+    [SerializeField] LineRenderer lineRenderer;
+    [SerializeField] List<Transform> effectTiles;
 
     int entityIndex;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        lineRenderer = GetComponent<LineRenderer>();
+        
     }
 
     // Update is called once per frame
@@ -31,22 +30,20 @@ public class BattleVisuals : MonoBehaviour
         if (BattleManager.Instance.BattleDataList.Count == 0) return;
         BattleData data = BattleManager.Instance.BattleDataList[entityIndex];
         Vector2Int[] effectedPositions = data.EntitySO.Actions[index].EffectedPositions;
-        planningTransform.localPosition = lineRenderer.GetPosition(lineRenderer.positionCount - 1);
-        for (int i = 0; i < effectTiles.Length; i++)
+        for (int i = 0; i < effectTiles.Count; i++)
         {
             bool isActive = i < effectedPositions.Length;
             effectTiles[i].gameObject.SetActive(isActive);
 
             if (!isActive) continue;
-            Vector2Int step = effectedPositions[i];
-            effectTiles[i].transform.localPosition = new Vector3(step.x, 0, step.y);// - transform.position;
+            Vector2Int step = effectedPositions[i] * BattleManager.Instance.ArenaSideFlip();
+            effectTiles[i].localPosition = new Vector3(step.x, 0, step.y);// - transform.position;
         }
     }
 
-    public void HideEffectedTiles(int index = -1)
+    public void HideEffectedTiles()
     {
-        if (index == BattleManager.Instance.TurnDataList[BattleManager.Instance.EntityIndex].ActionIndex && index != -1) return;
-        effectTiles.ToList().ForEach(x => x.gameObject.SetActive(false));
+        effectTiles.ForEach(x => x.gameObject.SetActive(false));
     }
 
     public void OnAddStep(object sender, BattleManager.MovementArgs args)
@@ -59,7 +56,9 @@ public class BattleVisuals : MonoBehaviour
     {
         int index = lineRenderer.positionCount++;
         Vector3 worldStep = new(step.x, 0, step.y);
-        lineRenderer.SetPosition(index, lineRenderer.GetPosition(index - 1) + worldStep);
+        Vector3 newPosition = lineRenderer.GetPosition(index - 1) + worldStep;
+        lineRenderer.SetPosition(index, newPosition);
+        planningTransform.localPosition = newPosition;
     }
 
     public void InitializeCharacter(int entityIndex)
@@ -68,7 +67,7 @@ public class BattleVisuals : MonoBehaviour
         BattleData battleData = BattleManager.Instance.BattleDataList[entityIndex];
         Vector2Int position = battleData.Position;
         transform.position = new(position.x, 0, position.y);
-        nameText.SetText(battleData.EntitySO.EntityName);
+        //nameText.SetText(battleData.EntitySO.EntityName);
     }
 
     public void SelectCharacter()
@@ -79,7 +78,10 @@ public class BattleVisuals : MonoBehaviour
         transform.position = new(position.x, 0, position.y);
         lineRenderer.positionCount = 1;
         turnData.Movement.ForEach(x => AddStep(x));
-        ShowEffectedTiles(turnData.ActionIndex);
-        healthText.SetText(battleData.Health.ToString());
+        if (turnData.ActionIndex != -1)
+            ShowEffectedTiles(turnData.ActionIndex);
+        else
+            HideEffectedTiles();
+        //healthText.SetText(battleData.Health.ToString());
     }
 }

@@ -483,19 +483,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cee1506e88fbd4c4b85c0f12523232a5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  planningTransform: {fileID: 0}
+  planningTransform: {fileID: 5386879571177197265}
   pointer: {fileID: 2498137987908679265}
-  effectTiles:
-  - {fileID: 4066862268809307284}
-  - {fileID: 7973214996865213283}
-  - {fileID: 555556658596476417}
-  - {fileID: 1230284266153110893}
-  - {fileID: 1101856716445739755}
-  - {fileID: 1539114313199419908}
-  - {fileID: 4817699599337234270}
-  - {fileID: 3447533595672101085}
   nameText: {fileID: 0}
   healthText: {fileID: 0}
+  lineRenderer: {fileID: 5981233261303691701}
+  effectTiles:
+  - {fileID: 7537479592914907077}
+  - {fileID: 6342518008747207849}
+  - {fileID: 3764280378152259718}
+  - {fileID: 3969142565757783469}
+  - {fileID: 4398702274628258762}
+  - {fileID: 1967761127646704424}
+  - {fileID: 7407890166444197781}
+  - {fileID: 6827350348552530618}
 --- !u!120 &5981233261303691701
 LineRenderer:
   serializedVersion: 2
