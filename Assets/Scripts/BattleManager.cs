@@ -35,12 +35,13 @@ public class BattleManager : NetworkBehaviour
     {
         public Vector2Int Step;
         public bool CanAdd;
+        public int Index;
     }
 
     public event EventHandler<ActionArgs> OnAction;
     public class ActionArgs : EventArgs
     {
-        public int ActionIndex;
+        public int ActionIndex, EntityIndex;
     }
 
     public event EventHandler OnTurnEnded;
@@ -110,7 +111,7 @@ public class BattleManager : NetworkBehaviour
         if (Mathf.Abs(inputVector.x) > 0.05f && Mathf.Abs(inputVector.y) > 0.05f) return;
         Vector2Int movement = new((int)inputVector.x, (int)inputVector.y);
         bool canAdd = remainingSteps-- > 0;
-        OnMovement?.Invoke(this, new() { Step = movement, CanAdd = canAdd });
+        OnMovement?.Invoke(this, new() { Step = movement, CanAdd = canAdd, Index = entityIndex });
 
         if (!canAdd) return;
         turnDataList[entityIndex].Movement.Add(movement);
@@ -118,7 +119,7 @@ public class BattleManager : NetworkBehaviour
 
     public void Action(int actionIndex)
     {
-        OnAction?.Invoke(this, new() { ActionIndex = actionIndex });
+        OnAction?.Invoke(this, new() { ActionIndex = actionIndex, EntityIndex = entityIndex });
     }
 
     public void ChangeEntity(int index = -1)
@@ -193,7 +194,7 @@ public class BattleManager : NetworkBehaviour
 public class TurnData
 {
     public List<Vector2Int> Movement = new();
-    public int ActionIndex;
+    public int ActionIndex = -1;
 }
 
 public class BattleData

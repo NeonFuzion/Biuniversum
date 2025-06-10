@@ -6,8 +6,7 @@ using UnityEngine.EventSystems;
 public class ActionHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     [SerializeField] int index;
-    [SerializeField] UnityEvent<int> onPointerEnter;
-    [SerializeField] UnityEvent onPointerExit;
+    [SerializeField] UnityEvent<int> onPointerEnter, onPointerExit;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -28,6 +27,6 @@ public class ActionHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        onPointerExit?.Invoke();
+        onPointerExit?.Invoke(index);
     }
 }
